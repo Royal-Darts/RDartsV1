@@ -8,6 +8,9 @@ export default function Teams() {
   const [teamStats, setTeamStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Teams to exclude from display
+  const excludedTeams = ['Ladderboard', 'Ladies Singles']
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -16,10 +19,15 @@ export default function Teams() {
           getPlayerStats()
         ])
 
-        setTeams(teamsData)
+        // Filter out excluded teams
+        const filteredTeams = teamsData.filter(team => 
+          !excludedTeams.includes(team.team_name)
+        )
 
-        // Aggregate team statistics
-        const aggregatedTeamStats = teamsData.map(team => {
+        setTeams(filteredTeams)
+
+        // Aggregate team statistics for filtered teams only
+        const aggregatedTeamStats = filteredTeams.map(team => {
           const teamStatsArray = allStats.filter(stat => stat.team_id === team.team_id)
           
           if (teamStatsArray.length === 0) {

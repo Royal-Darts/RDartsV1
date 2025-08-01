@@ -3,12 +3,14 @@ import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
 import DataTable from '@/components/DataTable'
 import Link from 'next/link'
-import { Eye } from 'lucide-react'
+import { Eye, Filter } from 'lucide-react'
 
 export default function Players() {
   const [players, setPlayers] = useState<Player[]>([])
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([])
+  const [filteredStats, setFilteredStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [minMatches, setMinMatches] = useState<number>(0)
 
   useEffect(() => {
     async function fetchData() {
@@ -20,6 +22,9 @@ export default function Players() {
 
         setPlayers(playersData)
         setPlayerStats(statsData)
+        
+        // Initial aggregation without filter
+        aggregatePlayerStats(playersData, statsData, 0)
       } catch (error) {
         console.error('Error fetching players:', error)
       } finally {
@@ -30,45 +35,53 @@ export default function Players() {
     fetchData()
   }, [])
 
-  // Aggregate player statistics
-  const aggregatedStats = players.map(player => {
-    const playerStatsArray = playerStats.filter(stat => stat.player_id === player.player_id)
-    
-    if (playerStatsArray.length === 0) {
+  const aggregatePlayerStats = (playersData: Player[], statsData: PlayerStat[], minMatchesFilter: number) => {
+    const aggregatedStats = playersData.map(player => {
+      const playerStatsArray = statsData.filter(stat => stat.player_id === player.player_id)
+      
+      if (playerStatsArray.length === 0) {
+        return {
+          player_id: player.player_id,
+          player_name: player.player_name,
+          tournaments: 0,
+          avg_three_dart: 0,
+          avg_win_rate: 0,
+          total_matches: 0,
+          high_finish: 0
+        }
+      }
+
+      const totalMatches = playerStatsArray.reduce((sum, stat) => sum + stat.match_played, 0)
+      const avgThreeDart = playerStatsArray.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / playerStatsArray.length
+      const avgWinRate = playerStatsArray.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / playerStatsArray.length
+      const highFinish = Math.max(...playerStatsArray.map(stat => stat.high_finish))
+
       return {
         player_id: player.player_id,
         player_name: player.player_name,
-        tournaments: 0,
-        avg_three_dart: 0,
-        avg_win_rate: 0,
-        total_matches: 0,
-        high_finish: 0
+        tournaments: playerStatsArray.length,
+        avg_three_dart: Math.round(avgThreeDart * 100) / 100,
+        avg_win_rate: Math.round(avgWinRate * 1000) / 10,
+        total_matches: totalMatches,
+        high_finish: highFinish
       }
-    }
+    }).filter(player => player.total_matches >= minMatchesFilter) // Apply filter
 
-    const totalMatches = playerStatsArray.reduce((sum, stat) => sum + stat.match_played, 0)
-    const avgThreeDart = playerStatsArray.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / playerStatsArray.length
-    const avgWinRate = playerStatsArray.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / playerStatsArray.length
-    const highFinish = Math.max(...playerStatsArray.map(stat => stat.high_finish))
+    setFilteredStats(aggregatedStats.sort((a, b) => b.avg_three_dart - a.avg_three_dart))
+  }
 
-    return {
-      player_id: player.player_id,
-      player_name: player.player_name,
-      tournaments: playerStatsArray.length,
-      avg_three_dart: Math.round(avgThreeDart * 100) / 100,
-      avg_win_rate: Math.round(avgWinRate * 1000) / 10,
-      total_matches: totalMatches,
-      high_finish: highFinish
-    }
-  })
+  const handleFilterChange = (newMinMatches: number) => {
+    setMinMatches(newMinMatches)
+    aggregatePlayerStats(players, playerStats, newMinMatches)
+  }
 
   const columns = [
     {
-    key: 'player_name',
-    label: 'Player Name',
-    render: (value: string, row: any) => (
-      <div className="font-medium text-gray-900">{value}</div>
-    )
+      key: 'player_name',
+      label: 'Player Name',
+      render: (value: string, row: any) => (
+        <div className="font-medium text-gray-900">{value}</div>
+      )
     },
     {
       key: 'tournaments',
@@ -124,11 +137,36 @@ export default function Players() {
         </div>
       </div>
 
+      {/* Filter Section */}
+      <div className="mt-6 bg-white p-4 rounded-lg shadow">
+        <div className="flex items-center space-x-4">
+          <Filter className="h-5 w-5 text-gray-400" />
+          <label htmlFor="min-matches" className="text-sm font-medium text-gray-700">
+            Minimum Matches Played:
+          </label>
+          <select
+            id="min-matches"
+            value={minMatches}
+            onChange={(e) => handleFilterChange(parseInt(e.target.value))}
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          >
+            <option value={0}>All Players</option>
+            <option value={1}>1+ Matches</option>
+            <option value={3}>3+ Matches</option>
+            <option value={5}>5+ Matches</option>
+            <option value={10}>10+ Matches</option>
+          </select>
+          <span className="text-sm text-gray-500">
+            Showing {filteredStats.length} players
+          </span>
+        </div>
+      </div>
+
       <div className="mt-8">
         <DataTable
-          data={aggregatedStats.sort((a, b) => b.avg_three_dart - a.avg_three_dart)}
+          data={filteredStats}
           columns={columns}
-          title={`All Players (${players.length} total)`}
+          title={`Players with ${minMatches}+ matches`}
         />
       </div>
     </div>

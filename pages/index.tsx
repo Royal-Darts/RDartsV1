@@ -16,19 +16,28 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
 
+  // Players to exclude from leaderboard display
+  const excludedPlayers = ['Anjana Rustagi', 'Sai Agarwal']
+
   useEffect(() => {
     async function fetchData() {
       try {
         const [tournamentsData, topPerformersData, allStats] = await Promise.all([
           getTournaments(),
-          getTopPerformers('three_dart_avg', 10),
+          getTopPerformers('three_dart_avg', 20), // Get more to account for exclusions
           getPlayerStats()
         ])
 
         setTournaments(tournamentsData)
-        setTopPerformers(topPerformersData)
         
-        // Calculate total stats
+        // Filter out excluded players from leaderboard display
+        const filteredTopPerformers = topPerformersData.filter(performer => 
+          !excludedPlayers.includes(performer.players?.player_name || performer.player_name || '')
+        ).slice(0, 10) // Take top 10 after filtering
+
+        setTopPerformers(filteredTopPerformers)
+        
+        // Calculate total stats (don't exclude from overall stats, only display)
         const uniquePlayers = new Set(allStats.map(stat => stat.player_id))
         const totalMatches = allStats.reduce((sum, stat) => sum + stat.match_played, 0)
         const avgDartAvg = allStats.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / allStats.length
@@ -50,41 +59,36 @@ export default function Dashboard() {
   }, [])
 
   const columns = [
-  {
-    key: 'player_name',
-    label: 'Player',
-    render: (value: any, row: PlayerStat) => (
-      <div>
-        <div className="font-medium">
-          {row.players?.player_name || row.player_name || 'Unknown Player'}
+    {
+      key: 'player_name',
+      label: 'Player',
+      render: (value: any, row: PlayerStat) => (
+        <div>
+          <div className="font-medium">{row.players?.player_name || value}</div>
+          <div className="text-gray-500">{row.teams?.team_name}</div>
         </div>
-        <div className="text-gray-500">
-          {row.teams?.team_name || row.team_name || 'Unknown Team'}
-        </div>
-      </div>
-    )
-  },
-  {
-    key: 'tournament_name',
-    label: 'Tournament',
-    render: (value: any, row: PlayerStat) => 
-      row.tournaments?.tournament_name || row.tournament_name || 'Unknown Tournament'
-  },
-  {
-    key: 'three_dart_avg',
-    label: '3-Dart Avg',
-    render: (value: number) => value.toFixed(2)
-  },
-  {
-    key: 'win_rate_sets',
-    label: 'Set Win Rate',
-    render: (value: number) => `${(value * 100).toFixed(1)}%`
-  },
-  {
-    key: 'high_finish',
-    label: 'High Finish'
-  }
-]
+      )
+    },
+    {
+      key: 'tournament_name',
+      label: 'Tournament',
+      render: (value: any, row: PlayerStat) => row.tournaments?.tournament_name
+    },
+    {
+      key: 'three_dart_avg',
+      label: '3-Dart Avg',
+      render: (value: number) => value.toFixed(2)
+    },
+    {
+      key: 'win_rate_sets',
+      label: 'Set Win Rate',
+      render: (value: number) => `${(value * 100).toFixed(1)}%`
+    },
+    {
+      key: 'high_finish',
+      label: 'High Finish'
+    }
+  ]
 
   if (loading) {
     return (
@@ -98,7 +102,7 @@ export default function Dashboard() {
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Royal Darts Dashboard</h1>
           <p className="mt-2 text-sm text-gray-700">
             Overview of tournament statistics and top performers
           </p>
