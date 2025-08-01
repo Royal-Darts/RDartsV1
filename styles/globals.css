@@ -7,31 +7,48 @@
     font-family: system-ui, sans-serif;
     scroll-behavior: smooth;
   }
+  
+  body {
+    @apply bg-gray-50;
+  }
 }
 
 @layer components {
-  /* Mobile-first responsive utilities */
+  /* Fix for empty white space issues */
+  .page-container {
+    @apply min-h-screen;
+  }
+  
+  .content-wrapper {
+    @apply w-full max-w-none;
+  }
+  
+  /* Ensure proper spacing and no excessive margins */
+  .main-content {
+    @apply pt-0 pb-8;
+  }
+  
+  /* Remove any unnecessary padding/margins that cause white space */
+  .layout-fix {
+    @apply p-0 m-0;
+  }
+  
+  /* Touch-friendly interface */
   .touch-manipulation {
     touch-action: manipulation;
   }
   
-  /* Enhanced focus states for mobile */
+  /* Enhanced focus states */
   .focus-mobile {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
   }
   
-  /* Smooth transitions for mobile interactions */
+  /* Smooth transitions */
   .transition-mobile {
     transition: all 0.2s ease-in-out;
   }
   
-  /* Safe area handling for mobile devices */
-  .safe-area-inset {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Custom scrollbar for webkit browsers */
+  /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
@@ -41,16 +58,16 @@
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: #8b5cf6;
     border-radius: 3px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: #7c3aed;
   }
 }
 
-/* Mobile-specific optimizations */
+/* Mobile optimizations */
 @media (max-width: 768px) {
   /* Larger touch targets */
   button, a {
@@ -63,17 +80,9 @@
     font-size: 16px;
   }
   
-  /* Optimize font sizes for mobile */
-  .mobile-text-sm {
-    font-size: 14px;
-  }
-  
-  .mobile-text-base {
-    font-size: 16px;
-  }
-  
-  .mobile-text-lg {
-    font-size: 18px;
+  /* Remove any excessive padding that causes white space */
+  .mobile-padding-fix {
+    @apply px-4 py-4;
   }
 }
 

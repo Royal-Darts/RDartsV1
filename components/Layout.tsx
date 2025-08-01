@@ -32,14 +32,18 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const navigation: NavigationItem[] = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Players', href: '/players', icon: Users },
-    { name: 'Teams', href: '/teams', icon: Target },
-    { name: 'Tournaments', href: '/tournaments', icon: Trophy },
-    { name: 'Compare', href: '/compare', icon: GitCompare },
-    { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-  ]
+  // Replace the navigation array in your existing Layout.tsx with this:
+
+const navigation: NavigationItem[] = [
+  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Players', href: '/players', icon: Users },
+  { name: 'Teams', href: '/teams', icon: Target },
+  { name: 'Tournaments', href: '/tournaments', icon: Trophy },
+  { name: 'Compare', href: '/compare', icon: GitCompare },
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+  { name: 'Hall of Fame', href: '/hall-of-fame', icon: Award },
+]
+
 
   useEffect(() => {
     const handleRouteChange = () => {
