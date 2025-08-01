@@ -82,37 +82,6 @@ export default function HallOfFame() {
         </div>
       </div>
 
-      {/* Championship Statistics */}
-      <div className="mb-12">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Championship Records</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-xl text-white text-center">
-            <div className="text-3xl font-bold mb-2">7</div>
-            <div className="text-blue-100">Years of Excellence</div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl text-white text-center">
-            <div className="text-3xl font-bold mb-2">14</div>
-            <div className="text-green-100">Teams Participated</div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-xl text-white text-center">
-            <div className="text-3xl font-bold mb-2">2</div>
-            <div className="text-purple-100">Multiple Winners</div>
-            <div className="text-xs text-purple-200 mt-1">RSV & BLC High Rollers</div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 rounded-xl text-white text-center">
-            <div className="text-3xl font-bold mb-2">2025</div>
-            <div className="text-amber-100">Latest Champions</div>
-            <div className="text-xs text-amber-200 mt-1">RSV Rising Stars</div>
-          </div>
-        </div>
-      </div>
-
       {/* Championship Timeline */}
       <div className="mb-12">
         <div className="text-center mb-8">

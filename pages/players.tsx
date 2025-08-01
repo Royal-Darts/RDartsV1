@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
-import { Users, Search, Filter } from 'lucide-react'
+import Link from 'next/link'
+import { Users, Search, Eye, ExternalLink } from 'lucide-react'
 
 interface PlayerWithStats {
   player_id: number
@@ -13,7 +14,7 @@ interface PlayerWithStats {
   win_rate_sets: number
   total_matches: number
   high_finish: number
-  total_180s: number  // Fixed: consistent naming
+  total_180s: number
   total_140_plus: number
   total_100_plus: number
 }
@@ -25,6 +26,7 @@ export default function PlayersPage() {
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerWithStats[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('avg_three_dart')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(true)
 
   // Players to exclude
@@ -61,7 +63,7 @@ export default function PlayersPage() {
           const avgThreeDart = playerStatsArray.reduce((sum, stat) => sum + (stat.three_dart_avg || 0), 0) / playerStatsArray.length
           const avgFirstNine = playerStatsArray.reduce((sum, stat) => sum + (stat.first_9_avg || 0), 0) / playerStatsArray.length
           const highFinish = Math.max(...playerStatsArray.map(stat => stat.high_finish || 0))
-          const total180s = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_180 || 0), 0) // Fixed variable name
+          const total180s = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_180 || 0), 0)
           const total140Plus = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_140_plus || 0), 0)
           const total100Plus = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_100_plus || 0), 0)
 
@@ -77,15 +79,12 @@ export default function PlayersPage() {
             win_rate_sets: Math.round((totalSetsWon / Math.max(totalSets, 1)) * 1000) / 10,
             total_matches: totalMatches,
             high_finish: highFinish,
-            total_180s: total180s,  // Fixed: consistent property name
+            total_180s: total180s,
             total_140_plus: total140Plus,
             total_100_plus: total100Plus
           })
         })
 
-        // Sort by 3-dart average by default
-        processedPlayers.sort((a, b) => b.avg_three_dart - a.avg_three_dart)
-        
         setPlayersWithStats(processedPlayers)
         setFilteredPlayers(processedPlayers)
       } catch (error) {
@@ -112,11 +111,15 @@ export default function PlayersPage() {
     filtered.sort((a, b) => {
       const aValue = (a as any)[sortBy] || 0
       const bValue = (b as any)[sortBy] || 0
-      return Number(bValue) - Number(aValue)
+      
+      if (sortOrder === 'desc') {
+        return Number(bValue) - Number(aValue)
+      }
+      return Number(aValue) - Number(bValue)
     })
 
     setFilteredPlayers(filtered)
-  }, [playersWithStats, searchTerm, sortBy])
+  }, [playersWithStats, searchTerm, sortBy, sortOrder])
 
   if (loading) {
     return (
@@ -131,19 +134,24 @@ export default function PlayersPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <div className="p-2 bg-blue-100 rounded-lg mr-3">
-            <Users className="h-6 w-6 text-blue-600" />
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg mr-3">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Players</h1>
+              <p className="text-gray-600">Performance statistics for all registered players</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Players</h1>
-            <p className="text-gray-600">Performance statistics for all registered players</p>
+          <div className="text-sm text-gray-500">
+            Total: {filteredPlayers.length} players
           </div>
         </div>
 
-        {/* Search and Sort */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Search and Sort Controls */}
+        <div className="flex flex-col md:flex-row gap-4 mt-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
@@ -167,102 +175,136 @@ export default function PlayersPage() {
             <option value="total_matches">Total Matches</option>
             <option value="total_180s">Total 180s</option>
           </select>
-        </div>
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="text-2xl font-bold text-blue-600">{filteredPlayers.length}</div>
-            <div className="text-sm text-gray-600">Active Players</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="text-2xl font-bold text-green-600">
-              {filteredPlayers.reduce((sum, p) => sum + p.total_matches, 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">Total Matches</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="text-2xl font-bold text-purple-600">
-              {filteredPlayers.length > 0 ? 
-                Math.round(filteredPlayers.reduce((sum, p) => sum + p.avg_three_dart, 0) / filteredPlayers.length * 100) / 100 : 0}
-            </div>
-            <div className="text-sm text-gray-600">Avg Performance</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="text-2xl font-bold text-amber-600">
-              {filteredPlayers.length > 0 ? Math.max(...filteredPlayers.map(p => p.high_finish)) : 0}
-            </div>
-            <div className="text-sm text-gray-600">Best Finish</div>
-          </div>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="desc">Highest First</option>
+            <option value="asc">Lowest First</option>
+          </select>
         </div>
       </div>
 
-      {/* Players Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPlayers.map((player, index) => (
-          <div
-            key={player.player_id}
-            className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow duration-300"
-          >
-            {/* Player Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                  {player.player_name.charAt(0)}
-                </div>
-                <div className="ml-3">
-                  <h3 className="font-bold text-gray-900">{player.player_name}</h3>
-                  <p className="text-sm text-gray-600">{player.team_name}</p>
-                </div>
-              </div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                index < 3 ? 'bg-amber-500' : 'bg-blue-500'
-              }`}>
-                #{index + 1}
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl font-bold text-blue-600">{player.avg_three_dart.toFixed(2)}</div>
-                <div className="text-xs text-blue-600">3-Dart Avg</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl font-bold text-green-600">{player.win_rate_sets.toFixed(1)}%</div>
-                <div className="text-xs text-green-600">Win Rate</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-xl font-bold text-purple-600">{player.high_finish}</div>
-                <div className="text-xs text-purple-600">High Finish</div>
-              </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
-                <div className="text-xl font-bold text-red-600">{player.total_180s}</div>
-                <div className="text-xs text-red-600">180s</div>
-              </div>
-            </div>
-
-            {/* Additional Stats */}
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tournaments:</span>
-                <span className="font-medium">{player.tournaments}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Matches:</span>
-                <span className="font-medium">{player.total_matches}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">First 9 Avg:</span>
-                <span className="font-medium">{player.avg_first_9.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">100+ Scores:</span>
-                <span className="font-medium">{player.total_100_plus}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Players Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Rank
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Player Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Team
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                3-Dart Avg
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                First 9 Avg
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Win Rate (%)
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Matches
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tournaments
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                High Finish
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                180s
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredPlayers.map((player, index) => (
+              <tr key={player.player_id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                    index < 3 
+                      ? index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600'
+                      : 'bg-blue-500'
+                  }`}>
+                    {index + 1}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                      {player.player_name.charAt(0)}
+                    </div>
+                    <div className="font-medium text-gray-900">{player.player_name}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    {player.team_name}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-lg font-bold text-blue-600">{player.avg_three_dart.toFixed(2)}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-lg font-semibold text-green-600">{player.avg_first_9.toFixed(2)}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium text-gray-900 mr-2">
+                      {player.win_rate_sets.toFixed(1)}%
+                    </span>
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          player.win_rate_sets >= 70 ? 'bg-green-500' : 
+                          player.win_rate_sets >= 50 ? 'bg-blue-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${Math.min(player.win_rate_sets, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {player.total_matches}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                    {player.tournaments}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`font-bold px-2 py-1 rounded ${
+                    player.high_finish >= 100 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {player.high_finish}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="font-bold text-red-600">{player.total_180s}</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Link
+                    href={`/players/${player.player_id}`}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors"
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    View Details
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* No Results */}
