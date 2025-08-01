@@ -13,7 +13,9 @@ import {
   Award,
   Search,
   Bell,
-  Home
+  Home,
+  Crown,
+  Settings
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -32,18 +34,15 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  // Replace the navigation array in your existing Layout.tsx with this:
-
-const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Players', href: '/players', icon: Users },
-  { name: 'Teams', href: '/teams', icon: Target },
-  { name: 'Tournaments', href: '/tournaments', icon: Trophy },
-  { name: 'Compare', href: '/compare', icon: GitCompare },
-  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-  { name: 'Hall of Fame', href: '/hall-of-fame', icon: Award },
-]
-
+  const navigation: NavigationItem[] = [
+    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Players', href: '/players', icon: Users },
+    { name: 'Teams', href: '/teams', icon: Target },
+    { name: 'Tournaments', href: '/tournaments', icon: Trophy },
+    { name: 'Compare', href: '/compare', icon: GitCompare },
+    { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+    { name: 'Hall of Fame', href: '/hall-of-fame', icon: Award },
+  ]
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -63,61 +62,60 @@ const navigation: NavigationItem[] = [
     return router.pathname.startsWith(href)
   }
 
-  // Fixed image error handler with proper TypeScript types
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const currentTarget = e.currentTarget as HTMLImageElement
     const nextSibling = currentTarget.nextElementSibling
     
-    // Hide current image
     currentTarget.style.display = 'none'
     
-    // Show fallback element if it exists and is an HTMLElement
     if (nextSibling && nextSibling instanceof HTMLElement) {
       nextSibling.style.display = 'flex'
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Desktop Sidebar */}
-      <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Modern Desktop Sidebar */}
+      <div className={`hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 ${
         sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
-      }`}>
-        <div className="flex flex-col w-full">
-          <div className="flex flex-col flex-grow pt-6 pb-4 overflow-y-auto bg-white border-r border-gray-200 shadow-lg">
-            {/* Royal Darts Logo */}
-            <div className="flex items-center flex-shrink-0 px-4 mb-8">
+      } z-50`}>
+        <div className="flex flex-col flex-grow">
+          <div className="flex flex-col flex-grow pt-6 pb-4 overflow-y-auto bg-white/80 backdrop-blur-xl border-r border-slate-200/50 shadow-xl">
+            {/* Modern Logo */}
+            <div className="flex items-center flex-shrink-0 px-6 mb-8">
               <div className="flex items-center">
                 <div className="relative">
                   <img 
                     src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                     alt="Royal Darts Logo"
-                    className="h-12 w-12 rounded-lg object-cover"
+                    className="h-12 w-12 rounded-xl object-cover shadow-lg ring-2 ring-blue-500/20"
                     onError={handleImageError}
                   />
-                  <div className="h-12 w-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hidden items-center justify-center">
-                    <Target className="h-8 w-8 text-white" />
+                  <div className="h-12 w-12 bg-gradient-to-r from-blue-600 to-amber-500 rounded-xl hidden items-center justify-center shadow-lg">
+                    <Crown className="h-8 w-8 text-white" />
                   </div>
                 </div>
                 {!sidebarCollapsed && (
-                  <div className="ml-3">
-                    <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  <div className="ml-4">
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
                       Royal Darts
                     </span>
-                    <div className="text-xs text-gray-500">Performance Analytics</div>
+                    <div className="text-xs text-slate-500 font-medium">Elite Analytics Platform</div>
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="ml-auto p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
+              {!sidebarCollapsed && (
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="ml-auto p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-2">
+            {/* Modern Navigation */}
+            <nav className="flex-1 px-4 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = isActivePath(item.href)
@@ -128,18 +126,18 @@ const navigation: NavigationItem[] = [
                     href={item.href}
                     className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-600 text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-700'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 transform scale-105'
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-blue-700 hover:scale-105'
                     }`}
                   >
                     <Icon className={`${sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5'} mr-3 transition-colors ${
-                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-purple-600'
+                      isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'
                     }`} />
                     {!sidebarCollapsed && (
                       <>
                         <span className="flex-1">{item.name}</span>
                         {item.badge && item.badge > 0 && (
-                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                             {item.badge}
                           </span>
                         )}
@@ -150,18 +148,18 @@ const navigation: NavigationItem[] = [
               })}
             </nav>
 
-            {/* Bottom section */}
-            <div className="flex-shrink-0 px-4 pt-4 border-t border-gray-200">
+            {/* Modern Bottom Section */}
+            <div className="flex-shrink-0 px-4 pt-4 border-t border-slate-200">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg">
                     <span className="text-sm font-bold text-white">RD</span>
                   </div>
                 </div>
                 {!sidebarCollapsed && (
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">Royal Darts</p>
-                    <p className="text-xs text-gray-500">Analytics Admin</p>
+                    <p className="text-sm font-semibold text-slate-700">Royal Darts</p>
+                    <p className="text-xs text-slate-500">Analytics Platform</p>
                   </div>
                 )}
               </div>
@@ -172,11 +170,11 @@ const navigation: NavigationItem[] = [
 
       {/* Mobile header */}
       <div className="lg:hidden">
-        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
           <div className="flex items-center">
             <button
               type="button"
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 transition-colors"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all duration-200"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <span className="sr-only">Open main menu</span>
@@ -190,13 +188,13 @@ const navigation: NavigationItem[] = [
               <img 
                 src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                 alt="Royal Darts Logo"
-                className="h-8 w-8 rounded-lg object-cover"
+                className="h-8 w-8 rounded-lg object-cover shadow-lg"
                 onError={handleImageError}
               />
-              <div className="h-8 w-8 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hidden items-center justify-center">
-                <Target className="h-6 w-6 text-white" />
+              <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-amber-500 rounded-lg hidden items-center justify-center">
+                <Crown className="h-6 w-6 text-white" />
               </div>
-              <span className="ml-2 text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              <span className="ml-2 text-lg font-bold bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
                 Royal Darts
               </span>
             </div>
@@ -204,12 +202,12 @@ const navigation: NavigationItem[] = [
 
           {/* Mobile header actions */}
           <div className="flex items-center space-x-2">
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors">
+            <button className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200">
               <Search className="h-5 w-5" />
             </button>
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 relative transition-colors">
+            <button className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 relative transition-all duration-200">
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-rose-500 rounded-full flex items-center justify-center">
                 <span className="text-xs text-white font-medium">3</span>
               </span>
             </button>
@@ -218,10 +216,10 @@ const navigation: NavigationItem[] = [
 
         {/* Mobile menu overlay */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden">
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" aria-hidden="true" />
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="fixed inset-0 bg-slate-600 bg-opacity-75 backdrop-blur-sm" aria-hidden="true" />
             
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl">
+            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white/95 backdrop-blur-xl shadow-2xl">
               <div className="absolute top-0 right-0 -mr-12 pt-2">
                 <button
                   type="button"
@@ -238,21 +236,21 @@ const navigation: NavigationItem[] = [
                   <img 
                     src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                     alt="Royal Darts Logo"
-                    className="h-10 w-10 rounded-lg object-cover"
+                    className="h-10 w-10 rounded-xl object-cover shadow-lg"
                     onError={handleImageError}
                   />
-                  <div className="h-10 w-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hidden items-center justify-center">
-                    <Target className="h-6 w-6 text-white" />
+                  <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-amber-500 rounded-xl hidden items-center justify-center">
+                    <Crown className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-3">
-                    <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
                       Royal Darts
                     </span>
-                    <div className="text-xs text-gray-500">Performance Analytics</div>
+                    <div className="text-xs text-slate-500">Elite Analytics Platform</div>
                   </div>
                 </div>
 
-                <nav className="px-4 space-y-3">
+                <nav className="px-4 space-y-2">
                   {navigation.map((item) => {
                     const Icon = item.icon
                     const isActive = isActivePath(item.href)
@@ -263,16 +261,16 @@ const navigation: NavigationItem[] = [
                         href={item.href}
                         className={`group flex items-center px-4 py-3 text-base font-medium rounded-xl transition-all duration-200 ${
                           isActive
-                            ? 'bg-gradient-to-r from-purple-500 to-blue-600 text-white shadow-lg'
-                            : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-700'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-blue-700'
                         }`}
                       >
                         <Icon className={`h-6 w-6 mr-3 transition-colors ${
-                          isActive ? 'text-white' : 'text-gray-500 group-hover:text-purple-600'
+                          isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'
                         }`} />
                         <span className="flex-1">{item.name}</span>
                         {item.badge && item.badge > 0 && (
-                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                             {item.badge}
                           </span>
                         )}
@@ -283,16 +281,16 @@ const navigation: NavigationItem[] = [
               </div>
 
               {/* Mobile menu footer */}
-              <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 flex border-t border-slate-200 p-4">
                 <div className="flex items-center w-full">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-amber-500 rounded-full flex items-center justify-center">
                       <span className="text-sm font-bold text-white">RD</span>
                     </div>
                   </div>
                   <div className="ml-3 flex-1">
-                    <p className="text-base font-medium text-gray-700">Royal Darts</p>
-                    <p className="text-sm text-gray-500">Analytics Admin</p>
+                    <p className="text-base font-medium text-slate-700">Royal Darts</p>
+                    <p className="text-sm text-slate-500">Analytics Platform</p>
                   </div>
                 </div>
               </div>
@@ -301,15 +299,15 @@ const navigation: NavigationItem[] = [
         )}
       </div>
 
-      {/* Main content area */}
-      <div className="flex flex-col flex-1 overflow-hidden lg:ml-0">
+      {/* Main content area with proper spacing for sidebar */}
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1">
           {children}
         </main>
         
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 py-4 px-6">
+        {/* Modern Footer */}
+        <footer className="bg-white/80 backdrop-blur-xl border-t border-slate-200/50 py-4 px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <img 
@@ -318,13 +316,13 @@ const navigation: NavigationItem[] = [
                 className="h-6 w-6 rounded object-cover"
                 onError={handleImageError}
               />
-              <div className="h-6 w-6 bg-gradient-to-r from-purple-500 to-blue-600 rounded hidden items-center justify-center">
-                <Target className="h-4 w-4 text-white" />
+              <div className="h-6 w-6 bg-gradient-to-r from-blue-500 to-amber-500 rounded hidden items-center justify-center">
+                <Crown className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-600">Royal Darts Analytics Platform</span>
+              <span className="text-sm font-medium text-slate-600">Royal Darts Analytics Platform</span>
             </div>
-            <div className="text-sm text-gray-500">
-              Built & Managed by <span className="font-semibold text-purple-600">SUCA ANALYTICS</span>
+            <div className="text-sm text-slate-500">
+              Built & Managed by <span className="font-semibold bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">SUCA ANALYTICS</span>
             </div>
           </div>
         </footer>
