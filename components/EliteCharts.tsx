@@ -36,7 +36,19 @@ export default function EliteCharts({
     return null
   }
 
-  const renderChart = () => {
+  const renderChart = (): JSX.Element => {
+    // If no data, return empty state
+    if (!data || data.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full text-slate-400">
+          <div className="text-center">
+            <div className="text-4xl mb-2">📊</div>
+            <p>No data available</p>
+          </div>
+        </div>
+      )
+    }
+
     switch (type) {
       case 'line':
         return (
@@ -163,7 +175,14 @@ export default function EliteCharts({
         )
 
       default:
-        return null
+        return (
+          <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="text-center">
+              <div className="text-4xl mb-2">⚠️</div>
+              <p>Unsupported chart type: {type}</p>
+            </div>
+          </div>
+        )
     }
   }
 
