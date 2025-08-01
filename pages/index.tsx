@@ -4,10 +4,12 @@ import { Tournament, PlayerStat } from '@/lib/supabase'
 import StatCard from '@/components/StatCard'
 import DataTable from '@/components/DataTable'
 import { Users, Target, Trophy, TrendingUp } from 'lucide-react'
+import type { Column } from '@/types'
 
 export default function Dashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [topPerformers, setTopPerformers] = useState<PlayerStat[]>([])
+  const [topAggregatedPlayers, setTopAggregatedPlayers] = useState<any[]>([])
   const [totalStats, setTotalStats] = useState({
     totalPlayers: 0,
     totalMatches: 0,
@@ -24,20 +26,61 @@ export default function Dashboard() {
       try {
         const [tournamentsData, topPerformersData, allStats] = await Promise.all([
           getTournaments(),
-          getTopPerformers('three_dart_avg', 20), // Get more to account for exclusions
+          getTopPerformers('three_dart_avg', 20),
           getPlayerStats()
         ])
 
         setTournaments(tournamentsData)
         
-        // Filter out excluded players from leaderboard display
         const filteredTopPerformers = topPerformersData.filter(performer => 
           !excludedPlayers.includes(performer.players?.player_name || performer.player_name || '')
-        ).slice(0, 10) // Take top 10 after filtering
+        ).slice(0, 10)
 
         setTopPerformers(filteredTopPerformers)
+
+        // Calculate aggregated top 10 players by 3-dart average
+        const playerAggregations = new Map()
+
+        allStats.forEach(stat => {
+          const playerName = stat.players?.player_name || stat.player_name || 'Unknown'
+          const playerId = stat.player_id
+          
+          if (excludedPlayers.includes(playerName)) return
+
+          if (!playerAggregations.has(playerId)) {
+            playerAggregations.set(playerId, {
+              player_id: playerId,
+              player_name: playerName,
+              total_three_dart: 0,
+              tournament_count: 0,
+              total_matches: 0,
+              total_180s: 0,
+              high_finish: 0,
+              total_win_rate_sets: 0,
+              teams: new Set()
+            })
+          }
+
+          const player = playerAggregations.get(playerId)
+          player.total_three_dart += stat.three_dart_avg
+          player.tournament_count += 1
+          player.total_matches += stat.match_played
+          player.total_180s += stat.scores_180
+          player.high_finish = Math.max(player.high_finish, stat.high_finish)
+          player.total_win_rate_sets += stat.win_rate_sets
+          player.teams.add(stat.teams?.team_name || 'Unknown')
+        })
+
+        const aggregatedPlayers = Array.from(playerAggregations.values()).map(player => ({
+          ...player,
+          avg_three_dart: Math.round((player.total_three_dart / player.tournament_count) * 100) / 100,
+          avg_win_rate_sets: Math.round((player.total_win_rate_sets / player.tournament_count) * 1000) / 10,
+          teams_played: Array.from(player.teams).join(', ')
+        }))
+
+        aggregatedPlayers.sort((a, b) => b.avg_three_dart - a.avg_three_dart)
+        setTopAggregatedPlayers(aggregatedPlayers.slice(0, 10))
         
-        // Calculate total stats (don't exclude from overall stats, only display)
         const uniquePlayers = new Set(allStats.map(stat => stat.player_id))
         const totalMatches = allStats.reduce((sum, stat) => sum + stat.match_played, 0)
         const avgDartAvg = allStats.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / allStats.length
@@ -58,7 +101,7 @@ export default function Dashboard() {
     fetchData()
   }, [])
 
-  const columns = [
+  const performersColumns: Column[] = [
     {
       key: 'player_name',
       label: 'Player',
@@ -83,6 +126,60 @@ export default function Dashboard() {
       key: 'win_rate_sets',
       label: 'Set Win Rate',
       render: (value: number) => `${(value * 100).toFixed(1)}%`
+    },
+    {
+      key: 'high_finish',
+      label: 'High Finish'
+    }
+  ]
+
+  const aggregatedColumns: Column[] = [
+    {
+      key: 'rank',
+      label: 'Rank',
+      render: (value: any, row: any, index?: number) => (
+        <div className="flex items-center">
+          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-bold ${
+            (index || 0) === 0 ? 'bg-yellow-500 text-white' : 
+            (index || 0) === 1 ? 'bg-gray-400 text-white' : 
+            (index || 0) === 2 ? 'bg-amber-600 text-white' : 
+            'bg-gray-200 text-gray-700'
+          }`}>
+            {(index || 0) + 1}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'player_name',
+      label: 'Player',
+      render: (value: string) => (
+        <div className="font-medium text-gray-900">{value}</div>
+      )
+    },
+    {
+      key: 'avg_three_dart',
+      label: 'Avg 3-Dart',
+      render: (value: number) => (
+        <span className="font-semibold text-primary-600">{value.toFixed(2)}</span>
+      )
+    },
+    {
+      key: 'tournament_count',
+      label: 'Tournaments'
+    },
+    {
+      key: 'total_matches',
+      label: 'Total Matches'
+    },
+    {
+      key: 'avg_win_rate_sets',
+      label: 'Avg Win Rate',
+      render: (value: number) => `${value.toFixed(1)}%`
+    },
+    {
+      key: 'total_180s',
+      label: 'Total 180s'
     },
     {
       key: 'high_finish',
@@ -133,12 +230,21 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Top 10 Aggregated Players Table */}
+      <div className="mt-8">
+        <DataTable
+          data={topAggregatedPlayers}
+          columns={aggregatedColumns}
+          title="Top 10 Players (Aggregated 3-Dart Average)"
+        />
+      </div>
+
       {/* Top Performers Table */}
       <div className="mt-8">
         <DataTable
           data={topPerformers}
-          columns={columns}
-          title="Top 10 Performers (3-Dart Average)"
+          columns={performersColumns}
+          title="Top 10 Single Tournament Performances"
         />
       </div>
     </div>

@@ -2,7 +2,7 @@ interface Column {
   key: string
   label: string
   sortable?: boolean
-  render?: (value: any, row: any) => React.ReactNode
+  render?: (value: any, row: any, index?: number) => React.ReactNode
 }
 
 interface DataTableProps {
@@ -40,7 +40,7 @@ export default function DataTable({ data, columns, title }: DataTableProps) {
               <tr key={index} className="hover:bg-gray-50">
                 {columns.map((column) => (
                   <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
+                    {column.render ? column.render(row[column.key], row, index) : row[column.key]}
                   </td>
                 ))}
               </tr>

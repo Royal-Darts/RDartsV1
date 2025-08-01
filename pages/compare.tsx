@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts'
-import { Swords } from 'lucide-react'
+import { Swords, Plus, X } from 'lucide-react'
+
+const PLAYER_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export default function Compare() {
   const [players, setPlayers] = useState<Player[]>([])
-  const [selectedPlayer1, setSelectedPlayer1] = useState<number>(0)
-  const [selectedPlayer2, setSelectedPlayer2] = useState<number>(0)
-  const [player1Stats, setPlayer1Stats] = useState<any>(null)
-  const [player2Stats, setPlayer2Stats] = useState<any>(null)
+  const [selectedPlayers, setSelectedPlayers] = useState<number[]>([0, 0, 0, 0, 0])
+  const [playerStats, setPlayerStats] = useState<any[]>([])
   const [comparisonData, setComparisonData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeComparisons, setActiveComparisons] = useState<number>(2)
 
   useEffect(() => {
     async function fetchPlayers() {
@@ -36,23 +37,58 @@ export default function Compare() {
       
       if (statsData.length === 0) return null
 
-      // Aggregate stats
-      const avgThreeDart = statsData.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / statsData.length
-      const avgWinRateSets = statsData.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / statsData.length
-      const avgFirst9 = statsData.reduce((sum, stat) => sum + stat.first_9_avg, 0) / statsData.length
-      const highFinish = Math.max(...statsData.map(stat => stat.high_finish))
+      // Aggregate all statistics
       const totalMatches = statsData.reduce((sum, stat) => sum + stat.match_played, 0)
+      const totalSets = statsData.reduce((sum, stat) => sum + stat.sets_played, 0)
+      const totalLegs = statsData.reduce((sum, stat) => sum + stat.legs_played, 0)
+      
+      const avgThreeDart = statsData.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / statsData.length
+      const avgOneDart = statsData.reduce((sum, stat) => sum + stat.one_dart_avg, 0) / statsData.length
+      const avgFirst9 = statsData.reduce((sum, stat) => sum + stat.first_9_avg, 0) / statsData.length
+      const avgWinRateSets = statsData.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / statsData.length
+      const avgWinRateLegs = statsData.reduce((sum, stat) => sum + stat.win_rate_legs, 0) / statsData.length
+      const avgKeepRate = statsData.reduce((sum, stat) => sum + stat.keep_rate, 0) / statsData.length
+      const avgBreakRate = statsData.reduce((sum, stat) => sum + stat.break_rate, 0) / statsData.length
+      
+      const highFinish = Math.max(...statsData.map(stat => stat.high_finish))
+      const bestLeg = Math.min(...statsData.map(stat => stat.best_leg).filter(leg => leg > 0))
+      const worstLeg = Math.max(...statsData.map(stat => stat.worst_leg))
+      
       const total180s = statsData.reduce((sum, stat) => sum + stat.scores_180, 0)
+      const total170Plus = statsData.reduce((sum, stat) => sum + stat.scores_170_plus, 0)
+      const total140Plus = statsData.reduce((sum, stat) => sum + stat.scores_140_plus, 0)
+      const total100Plus = statsData.reduce((sum, stat) => sum + stat.scores_100_plus, 0)
+      const totalFinishes100Plus = statsData.reduce((sum, stat) => sum + stat.finishes_100_plus, 0)
+      
+      const totalScore = statsData.reduce((sum, stat) => sum + stat.total_score, 0)
+      const totalDarts = statsData.reduce((sum, stat) => sum + stat.total_darts, 0)
 
       return {
         name: statsData[0].players?.player_name || 'Unknown',
-        avgThreeDart: Math.round(avgThreeDart * 100) / 100,
-        avgWinRateSets: Math.round(avgWinRateSets * 1000) / 10,
-        avgFirst9: Math.round(avgFirst9 * 100) / 100,
-        highFinish,
+        tournaments: statsData.length,
         totalMatches,
+        totalSets,
+        totalLegs,
+        avgThreeDart: Math.round(avgThreeDart * 100) / 100,
+        avgOneDart: Math.round(avgOneDart * 100) / 100,
+        avgFirst9: Math.round(avgFirst9 * 100) / 100,
+        avgWinRateSets: Math.round(avgWinRateSets * 1000) / 10,
+        avgWinRateLegs: Math.round(avgWinRateLegs * 1000) / 10,
+        avgKeepRate: Math.round(avgKeepRate * 1000) / 10,
+        avgBreakRate: Math.round(avgBreakRate * 1000) / 10,
+        highFinish,
+        bestLeg: bestLeg === Infinity ? 0 : bestLeg,
+        worstLeg,
         total180s,
-        tournaments: statsData.length
+        total170Plus,
+        total140Plus,
+        total100Plus,
+        totalFinishes100Plus,
+        totalScore,
+        totalDarts,
+        overallAverage: totalDarts > 0 ? Math.round((totalScore / totalDarts) * 100) / 100 : 0,
+        avg180sPerMatch: totalMatches > 0 ? Math.round((total180s / totalMatches) * 100) / 100 : 0,
+        avg100PlusPerMatch: totalMatches > 0 ? Math.round((total100Plus / totalMatches) * 100) / 100 : 0
       }
     } catch (error) {
       console.error('Error fetching player stats:', error)
@@ -62,56 +98,134 @@ export default function Compare() {
 
   useEffect(() => {
     async function updateComparison() {
-      const [stats1, stats2] = await Promise.all([
-        fetchPlayerStats(selectedPlayer1),
-        fetchPlayerStats(selectedPlayer2)
-      ])
+      const activePlayerIds = selectedPlayers.slice(0, activeComparisons).filter(id => id !== 0)
+      
+      if (activePlayerIds.length < 2) {
+        setPlayerStats([])
+        setComparisonData([])
+        return
+      }
 
-      setPlayer1Stats(stats1)
-      setPlayer2Stats(stats2)
+      const statsPromises = activePlayerIds.map(playerId => fetchPlayerStats(playerId))
+      const stats = await Promise.all(statsPromises)
+      const validStats = stats.filter(stat => stat !== null)
 
-      if (stats1 && stats2) {
-        // Normalize data for radar chart (0-100 scale)
-        const maxThreeDart = Math.max(stats1.avgThreeDart, stats2.avgThreeDart, 60) // baseline 60
-        const maxFinish = Math.max(stats1.highFinish, stats2.highFinish, 180) // max possible 180
-        const maxFirst9 = Math.max(stats1.avgFirst9, stats2.avgFirst9, 60) // baseline 60
+      setPlayerStats(validStats)
 
-        const data = [
+      if (validStats.length >= 2) {
+        // Create normalized data for radar chart
+        const maxThreeDart = Math.max(...validStats.map(s => s.avgThreeDart), 60)
+        const maxFirst9 = Math.max(...validStats.map(s => s.avgFirst9), 60)
+        const maxFinish = Math.max(...validStats.map(s => s.highFinish), 180)
+
+        const radarMetrics = [
           {
             metric: '3-Dart Avg',
-            [stats1.name]: Math.round((stats1.avgThreeDart / maxThreeDart) * 100),
-            [stats2.name]: Math.round((stats2.avgThreeDart / maxThreeDart) * 100)
+            ...Object.fromEntries(validStats.map(stat => [
+              stat.name, 
+              Math.round((stat.avgThreeDart / maxThreeDart) * 100)
+            ]))
           },
           {
-            metric: 'Win Rate %',
-            [stats1.name]: stats1.avgWinRateSets,
-            [stats2.name]: stats2.avgWinRateSets
+            metric: 'Set Win Rate',
+            ...Object.fromEntries(validStats.map(stat => [stat.name, stat.avgWinRateSets]))
+          },
+          {
+            metric: 'Leg Win Rate', 
+            ...Object.fromEntries(validStats.map(stat => [stat.name, stat.avgWinRateLegs]))
           },
           {
             metric: 'First 9 Avg',
-            [stats1.name]: Math.round((stats1.avgFirst9 / maxFirst9) * 100),
-            [stats2.name]: Math.round((stats2.avgFirst9 / maxFirst9) * 100)
+            ...Object.fromEntries(validStats.map(stat => [
+              stat.name,
+              Math.round((stat.avgFirst9 / maxFirst9) * 100)
+            ]))
           },
           {
             metric: 'High Finish',
-            [stats1.name]: Math.round((stats1.highFinish / maxFinish) * 100),
-            [stats2.name]: Math.round((stats2.highFinish / maxFinish) * 100)
+            ...Object.fromEntries(validStats.map(stat => [
+              stat.name,
+              Math.round((stat.highFinish / maxFinish) * 100)
+            ]))
           },
           {
-            metric: '180s per Match',
-            [stats1.name]: stats1.totalMatches > 0 ? Math.round((stats1.total180s / stats1.totalMatches) * 10) : 0,
-            [stats2.name]: stats2.totalMatches > 0 ? Math.round((stats2.total180s / stats2.totalMatches) * 10) : 0
+            metric: 'Keep Rate',
+            ...Object.fromEntries(validStats.map(stat => [stat.name, stat.avgKeepRate]))
+          },
+          {
+            metric: 'Break Rate',
+            ...Object.fromEntries(validStats.map(stat => [stat.name, stat.avgBreakRate]))
+          },
+          {
+            metric: '180s/Match',
+            ...Object.fromEntries(validStats.map(stat => [
+              stat.name,
+              Math.min(stat.avg180sPerMatch * 20, 100) // Scale for visibility
+            ]))
           }
         ]
 
-        setComparisonData(data)
+        setComparisonData(radarMetrics)
       }
     }
 
-    if (selectedPlayer1 && selectedPlayer2) {
+    if (selectedPlayers.some(id => id !== 0)) {
       updateComparison()
     }
-  }, [selectedPlayer1, selectedPlayer2])
+  }, [selectedPlayers, activeComparisons])
+
+  const addPlayer = () => {
+    if (activeComparisons < 5) {
+      setActiveComparisons(activeComparisons + 1)
+    }
+  }
+
+  const removePlayer = (index: number) => {
+    if (activeComparisons > 2) {
+      const newSelected = [...selectedPlayers]
+      newSelected[index] = 0
+      setSelectedPlayers(newSelected)
+      
+      // If removing the last active player, decrease count
+      if (index === activeComparisons - 1) {
+        setActiveComparisons(activeComparisons - 1)
+      }
+    }
+  }
+
+  const updateSelectedPlayer = (index: number, playerId: number) => {
+    const newSelected = [...selectedPlayers]
+    newSelected[index] = playerId
+    setSelectedPlayers(newSelected)
+  }
+
+  // Comprehensive comparison metrics
+  const comparisonMetrics = [
+    { key: 'tournaments', label: 'Tournaments Played', format: (val: number) => val.toString() },
+    { key: 'totalMatches', label: 'Total Matches', format: (val: number) => val.toString() },
+    { key: 'totalSets', label: 'Total Sets', format: (val: number) => val.toString() },
+    { key: 'totalLegs', label: 'Total Legs', format: (val: number) => val.toString() },
+    { key: 'avgThreeDart', label: '3-Dart Average', format: (val: number) => val.toFixed(2) },
+    { key: 'avgOneDart', label: '1-Dart Average', format: (val: number) => val.toFixed(2) },
+    { key: 'avgFirst9', label: 'First 9 Average', format: (val: number) => val.toFixed(2) },
+    { key: 'overallAverage', label: 'Overall Average', format: (val: number) => val.toFixed(2) },
+    { key: 'avgWinRateSets', label: 'Set Win Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
+    { key: 'avgWinRateLegs', label: 'Leg Win Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
+    { key: 'avgKeepRate', label: 'Keep Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
+    { key: 'avgBreakRate', label: 'Break Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
+    { key: 'highFinish', label: 'High Finish', format: (val: number) => val.toString() },
+    { key: 'bestLeg', label: 'Best Leg (Darts)', format: (val: number) => val > 0 ? val.toString() : 'N/A' },
+    { key: 'worstLeg', label: 'Worst Leg (Darts)', format: (val: number) => val.toString() },
+    { key: 'total180s', label: 'Total 180s', format: (val: number) => val.toString() },
+    { key: 'total170Plus', label: 'Total 170+ Scores', format: (val: number) => val.toString() },
+    { key: 'total140Plus', label: 'Total 140+ Scores', format: (val: number) => val.toString() },
+    { key: 'total100Plus', label: 'Total 100+ Scores', format: (val: number) => val.toString() },
+    { key: 'totalFinishes100Plus', label: 'Total 100+ Finishes', format: (val: number) => val.toString() },
+    { key: 'avg180sPerMatch', label: '180s per Match', format: (val: number) => val.toFixed(2) },
+    { key: 'avg100PlusPerMatch', label: '100+ Scores per Match', format: (val: number) => val.toFixed(2) },
+    { key: 'totalScore', label: 'Total Score', format: (val: number) => val.toLocaleString() },
+    { key: 'totalDarts', label: 'Total Darts', format: (val: number) => val.toLocaleString() }
+  ]
 
   if (loading) {
     return (
@@ -127,56 +241,63 @@ export default function Compare() {
         <div className="sm:flex-auto">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Swords className="h-8 w-8 mr-3 text-primary-600" />
-            Player Comparison
+            Player Comparison (Up to 5 Players)
           </h1>
           <p className="mt-2 text-sm text-gray-700">
-            Compare performance statistics between two players
+            Compare performance statistics between multiple players
           </p>
         </div>
       </div>
 
       {/* Player Selection */}
       <div className="mt-8 bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Player 1
-            </label>
-            <select
-              value={selectedPlayer1}
-              onChange={(e) => setSelectedPlayer1(parseInt(e.target.value))}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Select Players to Compare</h3>
+          {activeComparisons < 5 && (
+            <button
+              onClick={addPlayer}
+              className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             >
-              <option value={0}>Select a player...</option>
-              {players.map(player => (
-                <option key={player.player_id} value={player.player_id}>
-                  {player.player_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Player 2
-            </label>
-            <select
-              value={selectedPlayer2}
-              onChange={(e) => setSelectedPlayer2(parseInt(e.target.value))}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            >
-              <option value={0}>Select a player...</option>
-              {players.map(player => (
-                <option key={player.player_id} value={player.player_id}>
-                  {player.player_name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Player
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {Array.from({ length: activeComparisons }, (_, index) => (
+            <div key={index} className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Player {index + 1}
+                {index >= 2 && (
+                  <button
+                    onClick={() => removePlayer(index)}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-4 w-4 inline" />
+                  </button>
+                )}
+              </label>
+              <select
+                value={selectedPlayers[index]}
+                onChange={(e) => updateSelectedPlayer(index, parseInt(e.target.value))}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                style={{ borderColor: selectedPlayers[index] ? PLAYER_COLORS[index] : undefined }}
+              >
+                <option value={0}>Select a player...</option>
+                {players.map(player => (
+                  <option key={player.player_id} value={player.player_id}>
+                    {player.player_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Comparison Results */}
-      {player1Stats && player2Stats && (
+      {playerStats.length >= 2 && (
         <>
           {/* Radar Chart */}
           <div className="mt-8 bg-white p-6 rounded-lg shadow">
@@ -187,122 +308,71 @@ export default function Compare() {
                   <PolarGrid />
                   <PolarAngleAxis dataKey="metric" />
                   <PolarRadiusAxis angle={0} domain={[0, 100]} />
-                  <Radar
-                    name={player1Stats.name}
-                    dataKey={player1Stats.name}
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
-                    fillOpacity={0.3}
-                  />
-                  <Radar
-                    name={player2Stats.name}
-                    dataKey={player2Stats.name}
-                    stroke="#10b981"
-                    fill="#10b981"
-                    fillOpacity={0.3}
-                  />
+                  {playerStats.map((player, index) => (
+                    <Radar
+                      key={player.name}
+                      name={player.name}
+                      dataKey={player.name}
+                      stroke={PLAYER_COLORS[index]}
+                      fill={PLAYER_COLORS[index]}
+                      fillOpacity={0.3}
+                    />
+                  ))}
                   <Legend />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Detailed Comparison Table */}
+          {/* Comprehensive Comparison Table */}
           <div className="mt-8 bg-white rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Detailed Comparison</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Comprehensive Comparison</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">
                       Statistic
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      {player1Stats.name}
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      {player2Stats.name}
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Difference
-                    </th>
+                    {playerStats.map((player, index) => (
+                      <th
+                        key={player.name}
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                        style={{ color: PLAYER_COLORS[index] }}
+                      >
+                        {player.name}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">3-Dart Average</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.avgThreeDart}</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.avgThreeDart}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.avgThreeDart > player2Stats.avgThreeDart ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.avgThreeDart - player2Stats.avgThreeDart).toFixed(2)}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Set Win Rate (%)</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.avgWinRateSets}%</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.avgWinRateSets}%</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.avgWinRateSets > player2Stats.avgWinRateSets ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.avgWinRateSets - player2Stats.avgWinRateSets).toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">First 9 Average</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.avgFirst9}</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.avgFirst9}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.avgFirst9 > player2Stats.avgFirst9 ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.avgFirst9 - player2Stats.avgFirst9).toFixed(2)}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">High Finish</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.highFinish}</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.highFinish}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.highFinish > player2Stats.highFinish ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.highFinish - player2Stats.highFinish)}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Total 180s</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.total180s}</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.total180s}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.total180s > player2Stats.total180s ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.total180s - player2Stats.total180s)}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Tournaments Played</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player1Stats.tournaments}</td>
-                    <td className="px-6 py-4 text-sm text-center text-gray-900">{player2Stats.tournaments}</td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`font-medium ${
-                        player1Stats.tournaments > player2Stats.tournaments ? 'text-blue-600' : 'text-green-600'
-                      }`}>
-                        {Math.abs(player1Stats.tournaments - player2Stats.tournaments)}
-                      </span>
-                    </td>
-                  </tr>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {comparisonMetrics.map((metric) => (
+                    <tr key={metric.key} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                        {metric.label}
+                      </td>
+                      {playerStats.map((player, index) => {
+                        const value = player[metric.key as keyof typeof player]
+                        const isNumeric = typeof value === 'number'
+                        const isBest = isNumeric && playerStats.length > 1 ? 
+                          Math.max(...playerStats.map(p => p[metric.key as keyof typeof p] as number)) === value :
+                          false
+                        
+                        return (
+                          <td
+                            key={player.name}
+                            className={`px-6 py-4 text-sm text-center ${
+                              isBest && isNumeric ? 'font-bold bg-green-50 text-green-800' : 'text-gray-900'
+                            }`}
+                          >
+                            {metric.format(value as number)}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -310,10 +380,15 @@ export default function Compare() {
         </>
       )}
 
-      {(!selectedPlayer1 || !selectedPlayer2) && (
+      {playerStats.length < 2 && (
         <div className="mt-8 text-center py-12 bg-white rounded-lg shadow">
           <Swords className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-lg text-gray-500">Select two players to start comparing their performance</p>
+          <p className="text-lg text-gray-500">
+            Select at least 2 players to start comparing their performance
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            You can compare up to 5 players at once
+          </p>
         </div>
       )}
     </div>
