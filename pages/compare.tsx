@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { Swords, Plus, X, Crown, Medal, Trophy, Star, ChevronDown, Filter } from 'lucide-react'
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts'
+import { Users, Plus, X, Trophy } from 'lucide-react'
 
 const PLAYER_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-const PLAYER_GRADIENTS = [
-  'from-blue-500 to-blue-600',
-  'from-green-500 to-green-600', 
-  'from-yellow-500 to-yellow-600',
-  'from-red-500 to-red-600',
-  'from-purple-500 to-purple-600'
-]
 
-type ViewMode = 'overview' | 'detailed' | 'performance'
+type ViewMode = 'overview' | 'detailed'
 
 interface PlayerStatData {
   name: string
@@ -31,17 +24,6 @@ interface PlayerStatData {
   total100Plus: number
   totalScore: number
   totalDarts: number
-  performanceHistory: Array<{
-    tournament: string
-    threeDartAvg: number
-    winRate: number
-    first9Avg: number
-  }>
-}
-
-interface PerformanceDataPoint {
-  tournament: string
-  [key: string]: string | number | null // This allows dynamic keys like 'PlayerName_avg'
 }
 
 interface ComparisonMetric {
@@ -52,10 +34,9 @@ interface ComparisonMetric {
 
 export default function Compare() {
   const [players, setPlayers] = useState<Player[]>([])
-  const [selectedPlayers, setSelectedPlayers] = useState<number[]>([0, 0, 0, 0, 0])
+  const [selectedPlayers, setSelectedPlayers] = useState<number[]>([0, 0, 0])
   const [playerStats, setPlayerStats] = useState<PlayerStatData[]>([])
   const [comparisonData, setComparisonData] = useState<any[]>([])
-  const [performanceOverTime, setPerformanceOverTime] = useState<PerformanceDataPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [activeComparisons, setActiveComparisons] = useState<number>(2)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -115,13 +96,7 @@ export default function Compare() {
         total180s,
         total100Plus,
         totalScore,
-        totalDarts,
-        performanceHistory: statsData.map(stat => ({
-          tournament: stat.tournaments?.tournament_name || 'Unknown',
-          threeDartAvg: stat.three_dart_avg || 0,
-          winRate: (stat.win_rate_sets || 0) * 100,
-          first9Avg: stat.first_9_avg || 0
-        }))
+        totalDarts
       }
     } catch (error) {
       console.error('Error fetching player stats:', error)
@@ -137,7 +112,6 @@ export default function Compare() {
       if (activePlayerIds.length < 2) {
         setPlayerStats([])
         setComparisonData([])
-        setPerformanceOverTime([])
         return
       }
 
@@ -190,24 +164,6 @@ export default function Compare() {
         ]
 
         setComparisonData(radarMetrics)
-
-        // Create performance over time data with proper typing
-        const allTournaments = new Set<string>()
-        validStats.forEach(stat => {
-          stat.performanceHistory.forEach(perf => allTournaments.add(perf.tournament))
-        })
-
-        const performanceData: PerformanceDataPoint[] = Array.from(allTournaments).map(tournament => {
-          const dataPoint: PerformanceDataPoint = { tournament }
-          validStats.forEach(stat => {
-            const perf = stat.performanceHistory.find(p => p.tournament === tournament)
-            dataPoint[`${stat.name}_avg`] = perf?.threeDartAvg || null
-            dataPoint[`${stat.name}_winRate`] = perf?.winRate || null
-          })
-          return dataPoint
-        })
-
-        setPerformanceOverTime(performanceData)
       }
     } catch (error) {
       console.error('Error updating comparison:', error)
@@ -223,7 +179,7 @@ export default function Compare() {
   }, [selectedPlayers, activeComparisons])
 
   const addPlayer = () => {
-    if (activeComparisons < 5) {
+    if (activeComparisons < 3) {
       setActiveComparisons(activeComparisons + 1)
     }
   }
@@ -233,10 +189,7 @@ export default function Compare() {
       const newSelected = [...selectedPlayers]
       newSelected[index] = 0
       setSelectedPlayers(newSelected)
-      
-      if (index === activeComparisons - 1) {
-        setActiveComparisons(activeComparisons - 1)
-      }
+      setActiveComparisons(activeComparisons - 1)
     }
   }
 
@@ -247,43 +200,23 @@ export default function Compare() {
   }
 
   const clearAllSelections = () => {
-    setSelectedPlayers([0, 0, 0, 0, 0])
+    setSelectedPlayers([0, 0, 0])
     setActiveComparisons(2)
     setPlayerStats([])
     setComparisonData([])
-    setPerformanceOverTime([])
   }
 
-  const getBestPerformer = (metric: keyof PlayerStatData): string | null => {
-    if (playerStats.length === 0) return null
-    const best = playerStats.reduce((prev, current) => {
-      const prevValue = prev[metric] as number
-      const currentValue = current[metric] as number
-      return currentValue > prevValue ? current : prev
-    })
-    return best.name
-  }
-
-  const handleViewModeChange = (mode: string) => {
-    setViewMode(mode as ViewMode)
-  }
-
-  // Comprehensive comparison metrics with proper typing
+  // Essential comparison metrics
   const comparisonMetrics: ComparisonMetric[] = [
-    { key: 'tournaments', label: 'Tournaments Played', format: (val: number) => val.toString() },
+    { key: 'tournaments', label: 'Tournaments', format: (val: number) => val.toString() },
     { key: 'totalMatches', label: 'Total Matches', format: (val: number) => val.toString() },
-    { key: 'avgThreeDart', label: '3-Dart Average ✓', format: (val: number) => val.toFixed(2) },
-    { key: 'avgOneDart', label: '1-Dart Average', format: (val: number) => val.toFixed(2) },
+    { key: 'avgThreeDart', label: '3-Dart Average', format: (val: number) => val.toFixed(2) },
     { key: 'avgFirst9', label: 'First 9 Average', format: (val: number) => val.toFixed(2) },
     { key: 'avgWinRateSets', label: 'Set Win Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
     { key: 'avgWinRateLegs', label: 'Leg Win Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
-    { key: 'avgKeepRate', label: 'Keep Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
-    { key: 'avgBreakRate', label: 'Break Rate (%)', format: (val: number) => `${val.toFixed(1)}%` },
     { key: 'highFinish', label: 'High Finish', format: (val: number) => val.toString() },
     { key: 'total180s', label: 'Total 180s', format: (val: number) => val.toString() },
-    { key: 'total100Plus', label: 'Total 100+ Scores', format: (val: number) => val.toString() },
-    { key: 'totalScore', label: 'Total Score', format: (val: number) => val.toLocaleString() },
-    { key: 'totalDarts', label: 'Total Darts', format: (val: number) => val.toLocaleString() }
+    { key: 'total100Plus', label: 'Total 100+ Scores', format: (val: number) => val.toString() }
   ]
 
   if (loading) {
@@ -295,156 +228,104 @@ export default function Compare() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
-      {/* Hero Section */}
-      <div className="text-center py-12 bg-gradient-to-r from-primary-600 to-primary-800 rounded-3xl mb-8 text-white">
-        <div className="flex justify-center items-center mb-6">
-          <Swords className="h-16 w-16 mr-4" />
-          <div>
-            <h1 className="text-4xl font-bold">Player Battle Arena</h1>
-            <p className="text-xl opacity-90 mt-2">Compare up to 5 players in epic statistical duels</p>
-          </div>
-        </div>
+    <div className="px-4 sm:px-6 lg:px-8">
+      {/* Simple Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Player Comparison</h1>
+        <p className="mt-2 text-gray-600">Compare performance statistics between players</p>
       </div>
 
-      {/* Player Selection Cards */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Choose Your Champions</h2>
+      {/* Player Selection */}
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Select Players</h2>
           <div className="flex space-x-2">
-            {activeComparisons < 5 && (
+            {activeComparisons < 3 && (
               <button
                 onClick={addPlayer}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Fighter
+                <Plus className="h-4 w-4 mr-1" />
+                Add Player
               </button>
             )}
             <button
               onClick={clearAllSelections}
-              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <X className="h-5 w-5 mr-2" />
-              Reset Arena
+              <X className="h-4 w-4 mr-1" />
+              Clear
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {Array.from({ length: activeComparisons }, (_, index) => {
-            const selectedPlayer = players.find(p => p.player_id === selectedPlayers[index])
-            const playerStat = playerStats.find(p => p.name === selectedPlayer?.player_name)
-            
-            return (
-              <div
-                key={index}
-                className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 ${
-                  selectedPlayers[index] ? `border-${PLAYER_COLORS[index]} bg-gradient-to-br ${PLAYER_GRADIENTS[index]} text-white` : 'border-gray-200 hover:border-gray-300'
-                }`}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: activeComparisons }, (_, index) => (
+            <div key={index} className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Player {index + 1}
+                {index >= 2 && (
+                  <button
+                    onClick={() => removePlayer(index)}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-4 w-4 inline" />
+                  </button>
+                )}
+              </label>
+              <select
+                value={selectedPlayers[index]}
+                onChange={(e) => updateSelectedPlayer(index, parseInt(e.target.value))}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                          selectedPlayers[index] ? 'bg-white bg-opacity-20' : 'bg-gray-200 text-gray-600'
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      {index >= 2 && (
-                        <button
-                          onClick={() => removePlayer(index)}
-                          className="ml-2 p-1 rounded-full hover:bg-red-100 text-red-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                    {selectedPlayers[index] && (
-                      <Crown className="h-6 w-6 text-yellow-300" />
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      value={selectedPlayers[index]}
-                      onChange={(e) => updateSelectedPlayer(index, parseInt(e.target.value))}
-                      className={`w-full p-3 rounded-lg border-0 text-center font-medium ${
-                        selectedPlayers[index] 
-                          ? 'bg-white bg-opacity-20 text-white placeholder-white' 
-                          : 'bg-gray-50 text-gray-900'
-                      }`}
-                    >
-                      <option value={0}>Choose Fighter...</option>
-                      {players.map(player => (
-                        <option key={player.player_id} value={player.player_id} className="text-gray-900">
-                          {player.player_name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-3 h-6 w-6 pointer-events-none" />
-                  </div>
-
-                  {playerStat && (
-                    <div className="mt-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm opacity-80">3-Dart Avg</span>
-                        <span className="font-bold">{playerStat.avgThreeDart}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm opacity-80">Win Rate</span>
-                        <span className="font-bold">{playerStat.avgWinRateSets}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm opacity-80">High Finish</span>
-                        <span className="font-bold">{playerStat.highFinish}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+                <option value={0}>Select a player...</option>
+                {players.map(player => (
+                  <option key={player.player_id} value={player.player_id}>
+                    {player.player_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
         </div>
       </div>
 
       {playerStats.length >= 2 && (
         <>
-          {/* View Mode Selector */}
-          <div className="mb-8">
-            <div className="flex bg-white rounded-xl p-1 shadow-lg">
-              {[
-                { key: 'overview', label: 'Battle Overview', icon: Trophy },
-                { key: 'detailed', label: 'Detailed Stats', icon: Filter },
-                { key: 'performance', label: 'Performance Timeline', icon: Star }
-              ].map(mode => {
-                const Icon = mode.icon
-                return (
-                  <button
-                    key={mode.key}
-                    onClick={() => handleViewModeChange(mode.key)}
-                    className={`flex-1 flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all ${
-                      viewMode === mode.key
-                        ? 'bg-primary-600 text-white shadow-md'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 mr-2" />
-                    {mode.label}
-                  </button>
-                )
-              })}
+          {/* View Toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white rounded-lg shadow p-1">
+              <button
+                onClick={() => setViewMode('overview')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  viewMode === 'overview'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Trophy className="h-4 w-4 inline mr-2" />
+                Overview
+              </button>
+              <button
+                onClick={() => setViewMode('detailed')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  viewMode === 'detailed'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Users className="h-4 w-4 inline mr-2" />
+                Detailed
+              </button>
             </div>
           </div>
 
-          {/* Battle Overview */}
+          {/* Overview Mode */}
           {viewMode === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Radar Chart */}
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Battle Radar</h3>
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 text-center">Performance Comparison</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={comparisonData}>
@@ -459,7 +340,7 @@ export default function Compare() {
                           stroke={PLAYER_COLORS[index]}
                           fill={PLAYER_COLORS[index]}
                           fillOpacity={0.3}
-                          strokeWidth={3}
+                          strokeWidth={2}
                         />
                       ))}
                       <Legend />
@@ -468,52 +349,55 @@ export default function Compare() {
                 </div>
               </div>
 
-              {/* Champion Cards */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-900 text-center mb-6">Champion Stats</h3>
-                {[
-                  { metric: 'avgThreeDart' as keyof PlayerStatData, label: '3-Dart Average', icon: '🎯' },
-                  { metric: 'avgWinRateSets' as keyof PlayerStatData, label: 'Win Rate', icon: '🏆' },
-                  { metric: 'highFinish' as keyof PlayerStatData, label: 'High Finish', icon: '🔥' },
-                  { metric: 'total180s' as keyof PlayerStatData, label: 'Total 180s', icon: '⚡' }
-                ].map(item => {
-                  const bestPlayer = getBestPerformer(item.metric)
-                  return (
-                    <div key={item.metric} className="bg-white rounded-xl shadow-lg p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-3">{item.icon}</span>
-                          <div>
-                            <h4 className="font-bold text-gray-900">{item.label}</h4>
-                            <p className="text-sm text-gray-600">Champion: {bestPlayer}</p>
+              {/* Quick Stats */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Comparison</h3>
+                <div className="space-y-4">
+                  {[
+                    { key: 'avgThreeDart', label: '3-Dart Average', format: (v: number) => v.toFixed(2) },
+                    { key: 'avgWinRateSets', label: 'Set Win Rate', format: (v: number) => `${v.toFixed(1)}%` },
+                    { key: 'highFinish', label: 'High Finish', format: (v: number) => v.toString() },
+                    { key: 'total180s', label: 'Total 180s', format: (v: number) => v.toString() }
+                  ].map(metric => (
+                    <div key={metric.key} className="border-b border-gray-200 pb-4">
+                      <div className="text-sm font-medium text-gray-500 mb-2">{metric.label}</div>
+                      <div className="flex justify-between">
+                        {playerStats.map((player, index) => (
+                          <div key={player.name} className="text-center">
+                            <div className="text-sm text-gray-600">{player.name}</div>
+                            <div 
+                              className="text-lg font-semibold"
+                              style={{ color: PLAYER_COLORS[index] }}
+                            >
+                              {metric.format(player[metric.key as keyof PlayerStatData] as number)}
+                            </div>
                           </div>
-                        </div>
-                        <Crown className="h-8 w-8 text-yellow-500" />
+                        ))}
                       </div>
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Detailed Comparison */}
+          {/* Detailed Mode */}
           {viewMode === 'detailed' && (
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
-              <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-8 py-6">
-                <h3 className="text-2xl font-bold text-white">Detailed Battle Statistics</h3>
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Detailed Comparison</h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full">
+                <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left font-bold text-gray-900 sticky left-0 bg-gray-50">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Statistic
                       </th>
                       {playerStats.map((player, index) => (
                         <th
                           key={player.name}
-                          className="px-6 py-4 text-center font-bold"
+                          className="px-6 py-3 text-center text-xs font-medium uppercase"
                           style={{ color: PLAYER_COLORS[index] }}
                         >
                           {player.name}
@@ -521,10 +405,10 @@ export default function Compare() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {comparisonMetrics.map(metric => (
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {comparisonMetrics.map((metric) => (
                       <tr key={metric.key} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900 sticky left-0 bg-white">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
                           {metric.label}
                         </td>
                         {playerStats.map((player, index) => {
@@ -538,14 +422,12 @@ export default function Compare() {
                           return (
                             <td
                               key={player.name}
-                              className={`px-6 py-4 text-center font-semibold ${
-                                isBest ? 'bg-yellow-50 text-yellow-800' : 'text-gray-900'
+                              className={`px-6 py-4 text-sm text-center font-medium ${
+                                isBest ? 'bg-green-50 text-green-800' : 'text-gray-900'
                               }`}
                             >
-                              <div className="flex flex-col items-center">
-                                <span>{metric.format(value)}</span>
-                                {isBest && <Medal className="h-4 w-4 text-yellow-600 mt-1" />}
-                              </div>
+                              {metric.format(value)}
+                              {isBest && <span className="ml-1">👑</span>}
                             </td>
                           )
                         })}
@@ -556,49 +438,15 @@ export default function Compare() {
               </div>
             </div>
           )}
-
-          {/* Performance Timeline */}
-          {viewMode === 'performance' && performanceOverTime.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Performance Timeline</h3>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={performanceOverTime}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="tournament" angle={-45} textAnchor="end" height={100} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {playerStats.map((player, index) => (
-                      <Line
-                        key={`${player.name}_avg`}
-                        type="monotone"
-                        dataKey={`${player.name}_avg`}
-                        stroke={PLAYER_COLORS[index]}
-                        strokeWidth={3}
-                        name={`${player.name} - 3-Dart Avg`}
-                        connectNulls={false}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
         </>
       )}
 
       {playerStats.length < 2 && (
-        <div className="text-center py-16 bg-white rounded-2xl shadow-xl">
-          <div className="animate-bounce mb-6">
-            <Swords className="h-20 w-20 text-gray-300 mx-auto" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready for Battle?</h3>
-          <p className="text-xl text-gray-600 mb-2">
-            Select at least 2 fighters to start the epic comparison
-          </p>
-          <p className="text-lg text-gray-500">
-            Choose your champions and watch them compete! ⚔️
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Select Players to Compare</h3>
+          <p className="text-gray-600">
+            Choose at least 2 players to start comparing their performance
           </p>
         </div>
       )}
