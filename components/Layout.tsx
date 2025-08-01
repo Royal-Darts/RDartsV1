@@ -3,8 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { 
   Crown, BarChart3, Users, Trophy, TrendingUp, Menu, X, GitCompare,
-  Award, Home, Target, Brain, Zap, Settings, Search, Bell, Calendar,
-  Activity, PieChart, LineChart
+  Award, Home, Target, Settings, Search, Bell
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -20,7 +19,6 @@ export default function Layout({ children }: LayoutProps) {
       title: 'Overview',
       items: [
         { name: 'Dashboard', href: '/', icon: Home, badge: null },
-        { name: 'Live Analytics', href: '/live-analytics', icon: Activity, badge: 'New' },
       ]
     },
     {
@@ -36,17 +34,12 @@ export default function Layout({ children }: LayoutProps) {
       title: 'Analytics',
       items: [
         { name: 'Advanced Analytics', href: '/analytics', icon: TrendingUp, badge: null },
-        { name: 'Statistics Lab', href: '/stats-lab', icon: PieChart, badge: 'Pro' },
-        { name: 'Performance Insights', href: '/insights', icon: Brain, badge: 'AI' },
-        { name: 'Trends & Patterns', href: '/trends', icon: LineChart, badge: null },
       ]
     },
     {
       title: 'Elite',
       items: [
         { name: 'Hall of Fame', href: '/hall-of-fame', icon: Award, badge: null },
-        { name: 'Elite Rankings', href: '/rankings', icon: Crown, badge: null },
-        { name: 'Tournament Calendar', href: '/calendar', icon: Calendar, badge: null },
       ]
     }
   ]
@@ -242,7 +235,7 @@ export default function Layout({ children }: LayoutProps) {
                   <p className="text-sm font-bold text-blue-600">156</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-slate-500">Live Matches</p>
+                  <p className="text-xs text-slate-500">Tournaments</p>
                   <p className="text-sm font-bold text-emerald-600">8</p>
                 </div>
               </div>

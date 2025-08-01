@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
+import IndividualPlayerCard from '@/components/IndividualPlayerCard'
 import Link from 'next/link'
 import { Eye, Users, Search, Filter, Award, TrendingUp, Target, Grid, List, SlidersHorizontal, Activity } from 'lucide-react'
 
@@ -27,7 +28,7 @@ interface ProcessedPlayer {
     winRateSets: number
     winRateLegs: number
     highFinish: number
-    total_180s: number  // Fixed: using underscore notation
+    total_180s: number
     total_140_plus: number
     total_100_plus: number
     matchesPlayed: number
@@ -51,6 +52,7 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([])
   const [filteredPlayers, setFilteredPlayers] = useState<ProcessedPlayer[]>([])
+  const [selectedPlayer, setSelectedPlayer] = useState<ProcessedPlayer | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [minMatches, setMinMatches] = useState(0)
   const [sortBy, setSortBy] = useState('avg_three_dart')
@@ -120,7 +122,7 @@ export default function PlayersPage() {
         win_rate_legs: Math.round((totalLegsWon / Math.max(totalLegs, 1)) * 1000) / 10,
         total_matches: totalMatches,
         high_finish: highFinish,
-        total_180s: total180s,  // Fixed: consistent with interface
+        total_180s: total180s,
         total_140_plus: total140Plus,
         total_100_plus: total100Plus,
         total_score: totalScore,
@@ -133,7 +135,7 @@ export default function PlayersPage() {
           winRateSets: (totalSetsWon / Math.max(totalSets, 1)) * 100,
           winRateLegs: (totalLegsWon / Math.max(totalLegs, 1)) * 100,
           highFinish,
-          total_180s: total180s,  // Fixed: consistent with interface
+          total_180s: total180s,
           total_140_plus: total140Plus,
           total_100_plus: total100Plus,
           matchesPlayed: totalMatches,
@@ -322,30 +324,6 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          {/* Active Filters Summary */}
-          {(minMatches > 0 || searchTerm || filterTeam) && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-blue-700">
-                  <strong>Active Filters:</strong>
-                  {minMatches > 0 && <span className="ml-2 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Min {minMatches} matches</span>}
-                  {searchTerm && <span className="ml-2 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Search: "{searchTerm}"</span>}
-                  {filterTeam && <span className="ml-2 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Team: {filterTeam}</span>}
-                </div>
-                <button
-                  onClick={() => {
-                    setMinMatches(0)
-                    setSearchTerm('')
-                    setFilterTeam('')
-                  }}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Clear All
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Results Summary */}
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-slate-50 rounded-lg">
@@ -408,6 +386,13 @@ export default function PlayersPage() {
                     <span>Matches: {player.total_matches}</span> • <span>180s: {player.total_180s}</span>
                   </div>
                 </div>
+                
+                <button
+                  onClick={() => setSelectedPlayer(player)}
+                  className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                >
+                  <Eye className="h-4 w-4 text-blue-600" />
+                </button>
               </div>
             </div>
           ))}
@@ -448,13 +433,19 @@ export default function PlayersPage() {
                     <div className="text-lg font-bold text-purple-600">{player.total_180s}</div>
                     <div className="text-xs text-slate-500">180s</div>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-2">
                     {player.trends.performance === 'up' ? 
                       <TrendingUp className="h-4 w-4 text-emerald-500" /> : 
                       player.trends.performance === 'down' ? 
                       <TrendingUp className="h-4 w-4 text-red-500 rotate-180" /> : 
                       <Activity className="h-4 w-4 text-slate-400" />
                     }
+                    <button
+                      onClick={() => setSelectedPlayer(player)}
+                      className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                    >
+                      <Eye className="h-4 w-4 text-blue-600" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -470,6 +461,14 @@ export default function PlayersPage() {
             Load More Players
           </button>
         </div>
+      )}
+
+      {/* Individual Player Card Modal */}
+      {selectedPlayer && (
+        <IndividualPlayerCard
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
       )}
     </div>
   )
