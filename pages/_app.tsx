@@ -1,12 +1,11 @@
-// pages/_app.tsx
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
-import EliteLayout from '@/components/EliteLayout'
+import Layout from '@/components/Layout'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <EliteLayout>
+    <Layout>
       <Component {...pageProps} />
-    </EliteLayout>
+    </Layout>
   )
 }
