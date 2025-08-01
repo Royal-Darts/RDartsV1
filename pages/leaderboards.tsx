@@ -23,59 +23,54 @@ export default function LeaderboardsPage() {
   })
 
   const columns = [
-    {
-      key: 'rank',
-      label: 'Rank',
-      render: (value: any, row: any, index: number) => index + 1
-    },
-    {
-      key: 'player_name',
-      label: 'Player',
-      render: (value: any, row: any) => (
-        <div>
-          <div className="font-medium">{row.players?.player_name}</div>
-          <div className="text-sm text-gray-500">{row.teams?.team_name}</div>
-        </div>
-      )
-    },
-    {
-      key: 'tournament_name',
-      label: 'Tournament',
-      render: (value: any, row: any) => row.tournaments?.tournament_name
-    },
-    {
-      key: 'three_dart_avg',
-      label: '3-Dart Avg',
-      render: (value: number) => (
-        <span className={`font-medium ${value >= 45 ? 'text-green-600' : value >= 35 ? 'text-blue-600' : 'text-gray-600'}`}>
-          {value.toFixed(2)}
-        </span>
-      )
-    },
-    {
-      key: 'first_9_avg',
-      label: 'First 9 Avg',
-      render: (value: number) => value.toFixed(2)
-    },
-    {
-      key: 'win_rate_sets',
-      label: 'Win Rate',
-      render: (value: number) => (
-        <span className={`font-medium ${value >= 0.7 ? 'text-green-600' : value >= 0.5 ? 'text-blue-600' : 'text-red-600'}`}>
-          {(value * 100).toFixed(1)}%
-        </span>
-      )
-    },
-    {
-      key: 'high_finish',
-      label: 'High Finish',
-      render: (value: number) => (
-        <span className={`font-bold ${value >= 100 ? 'text-yellow-600' : 'text-gray-600'}`}>
-          {value}
-        </span>
-      )
-    }
-  ]
+  {
+    key: 'player_name',
+    label: 'Player',
+    render: (value: any, row: any) => (
+      <div>
+        <div className="font-medium">{row.players?.player_name}</div>
+        <div className="text-sm text-gray-500">{row.teams?.team_name}</div>
+      </div>
+    )
+  },
+  {
+    key: 'tournament_name',
+    label: 'Tournament',
+    render: (value: any, row: any) => row.tournaments?.tournament_name
+  },
+  {
+    key: 'three_dart_avg',
+    label: '3-Dart Avg',
+    render: (value: number) => (
+      <span className={`font-medium ${value >= 45 ? 'text-green-600' : value >= 35 ? 'text-blue-600' : 'text-gray-600'}`}>
+        {value.toFixed(2)}
+      </span>
+    )
+  },
+  {
+    key: 'first_9_avg',
+    label: 'First 9 Avg',
+    render: (value: number) => value.toFixed(2)
+  },
+  {
+    key: 'win_rate_sets',
+    label: 'Win Rate',
+    render: (value: number) => (
+      <span className={`font-medium ${value >= 0.7 ? 'text-green-600' : value >= 0.5 ? 'text-blue-600' : 'text-red-600'}`}>
+        {(value * 100).toFixed(1)}%
+      </span>
+    )
+  },
+  {
+    key: 'high_finish',
+    label: 'High Finish',
+    render: (value: number) => (
+      <span className={`font-bold ${value >= 100 ? 'text-yellow-600' : 'text-gray-600'}`}>
+        {value}
+      </span>
+    )
+  }
+]
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 space-y-8">
