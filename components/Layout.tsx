@@ -59,6 +59,20 @@ export default function Layout({ children }: LayoutProps) {
     return router.pathname.startsWith(href)
   }
 
+  // Fixed image error handler with proper TypeScript types
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const currentTarget = e.currentTarget as HTMLImageElement
+    const nextSibling = currentTarget.nextElementSibling
+    
+    // Hide current image
+    currentTarget.style.display = 'none'
+    
+    // Show fallback element if it exists and is an HTMLElement
+    if (nextSibling && nextSibling instanceof HTMLElement) {
+      nextSibling.style.display = 'flex'
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Desktop Sidebar */}
@@ -75,11 +89,7 @@ export default function Layout({ children }: LayoutProps) {
                     src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                     alt="Royal Darts Logo"
                     className="h-12 w-12 rounded-lg object-cover"
-                    onError={(e) => {
-                      // Fallback to crown icon if image fails to load
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.nextElementSibling.style.display = 'block'
-                    }}
+                    onError={handleImageError}
                   />
                   <div className="h-12 w-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hidden items-center justify-center">
                     <Target className="h-8 w-8 text-white" />
@@ -177,10 +187,7 @@ export default function Layout({ children }: LayoutProps) {
                 src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                 alt="Royal Darts Logo"
                 className="h-8 w-8 rounded-lg object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  e.currentTarget.nextElementSibling.style.display = 'block'
-                }}
+                onError={handleImageError}
               />
               <div className="h-8 w-8 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hidden items-center justify-center">
                 <Target className="h-6 w-6 text-white" />
@@ -228,10 +235,7 @@ export default function Layout({ children }: LayoutProps) {
                     src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                     alt="Royal Darts Logo"
                     className="h-10 w-10 rounded-lg object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.nextElementSibling.style.display = 'block'
-                    }}
+                    onError={handleImageError}
                   />
                   <div className="h-10 w-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg hidden items-center justify-center">
                     <Target className="h-6 w-6 text-white" />
@@ -308,10 +312,7 @@ export default function Layout({ children }: LayoutProps) {
                 src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
                 alt="Royal Darts Logo"
                 className="h-6 w-6 rounded object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  e.currentTarget.nextElementSibling.style.display = 'block'
-                }}
+                onError={handleImageError}
               />
               <div className="h-6 w-6 bg-gradient-to-r from-purple-500 to-blue-600 rounded hidden items-center justify-center">
                 <Target className="h-4 w-4 text-white" />
