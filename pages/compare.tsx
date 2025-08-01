@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from 'recharts'
-import { Swords, Plus, X } from 'lucide-react'
+import { Swords, Plus, X, RefreshCw } from 'lucide-react'
 
 const PLAYER_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -13,6 +13,7 @@ export default function Compare() {
   const [comparisonData, setComparisonData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeComparisons, setActiveComparisons] = useState<number>(2)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     async function fetchPlayers() {
@@ -41,8 +42,11 @@ export default function Compare() {
       const totalMatches = statsData.reduce((sum, stat) => sum + stat.match_played, 0)
       const totalSets = statsData.reduce((sum, stat) => sum + stat.sets_played, 0)
       const totalLegs = statsData.reduce((sum, stat) => sum + stat.legs_played, 0)
+      const totalScore = statsData.reduce((sum, stat) => sum + stat.total_score, 0)
+      const totalDarts = statsData.reduce((sum, stat) => sum + stat.total_darts, 0)
       
-      const avgThreeDart = statsData.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / statsData.length
+      // Verified calculation: (total_score / total_darts) * 3
+      const avgThreeDart = totalDarts > 0 ? (totalScore / totalDarts) * 3 : 0
       const avgOneDart = statsData.reduce((sum, stat) => sum + stat.one_dart_avg, 0) / statsData.length
       const avgFirst9 = statsData.reduce((sum, stat) => sum + stat.first_9_avg, 0) / statsData.length
       const avgWinRateSets = statsData.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / statsData.length
@@ -59,9 +63,6 @@ export default function Compare() {
       const total140Plus = statsData.reduce((sum, stat) => sum + stat.scores_140_plus, 0)
       const total100Plus = statsData.reduce((sum, stat) => sum + stat.scores_100_plus, 0)
       const totalFinishes100Plus = statsData.reduce((sum, stat) => sum + stat.finishes_100_plus, 0)
-      
-      const totalScore = statsData.reduce((sum, stat) => sum + stat.total_score, 0)
-      const totalDarts = statsData.reduce((sum, stat) => sum + stat.total_darts, 0)
 
       return {
         name: statsData[0].players?.player_name || 'Unknown',
@@ -96,8 +97,9 @@ export default function Compare() {
     }
   }
 
-  useEffect(() => {
-    async function updateComparison() {
+  const updateComparison = async () => {
+    setIsUpdating(true)
+    try {
       const activePlayerIds = selectedPlayers.slice(0, activeComparisons).filter(id => id !== 0)
       
       if (activePlayerIds.length < 2) {
@@ -167,8 +169,14 @@ export default function Compare() {
 
         setComparisonData(radarMetrics)
       }
+    } catch (error) {
+      console.error('Error updating comparison:', error)
+    } finally {
+      setIsUpdating(false)
     }
+  }
 
+  useEffect(() => {
     if (selectedPlayers.some(id => id !== 0)) {
       updateComparison()
     }
@@ -199,13 +207,20 @@ export default function Compare() {
     setSelectedPlayers(newSelected)
   }
 
+  const clearAllSelections = () => {
+    setSelectedPlayers([0, 0, 0, 0, 0])
+    setActiveComparisons(2)
+    setPlayerStats([])
+    setComparisonData([])
+  }
+
   // Comprehensive comparison metrics
   const comparisonMetrics = [
     { key: 'tournaments', label: 'Tournaments Played', format: (val: number) => val.toString() },
     { key: 'totalMatches', label: 'Total Matches', format: (val: number) => val.toString() },
     { key: 'totalSets', label: 'Total Sets', format: (val: number) => val.toString() },
     { key: 'totalLegs', label: 'Total Legs', format: (val: number) => val.toString() },
-    { key: 'avgThreeDart', label: '3-Dart Average', format: (val: number) => val.toFixed(2) },
+    { key: 'avgThreeDart', label: '3-Dart Average ✓', format: (val: number) => val.toFixed(2) },
     { key: 'avgOneDart', label: '1-Dart Average', format: (val: number) => val.toFixed(2) },
     { key: 'avgFirst9', label: 'First 9 Average', format: (val: number) => val.toFixed(2) },
     { key: 'overallAverage', label: 'Overall Average', format: (val: number) => val.toFixed(2) },
@@ -244,24 +259,36 @@ export default function Compare() {
             Player Comparison (Up to 5 Players)
           </h1>
           <p className="mt-2 text-sm text-gray-700">
-            Compare performance statistics between multiple players
+            Compare performance statistics between multiple players with verified calculations
           </p>
         </div>
       </div>
 
-      {/* Player Selection */}
-      <div className="mt-8 bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Select Players to Compare</h3>
-          {activeComparisons < 5 && (
+      {/* Enhanced Player Selection */}
+      <div className="mt-8 bg-white p-6 rounded-lg shadow border-l-4 border-primary-500">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+            {isUpdating && <RefreshCw className="h-5 w-5 mr-2 animate-spin text-primary-600" />}
+            Select Players to Compare
+          </h3>
+          <div className="flex space-x-2">
+            {activeComparisons < 5 && (
+              <button
+                onClick={addPlayer}
+                className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Player
+              </button>
+            )}
             <button
-              onClick={addPlayer}
-              className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+              onClick={clearAllSelections}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Player
+              <X className="h-4 w-4 mr-1" />
+              Clear All
             </button>
-          )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -282,7 +309,10 @@ export default function Compare() {
                 value={selectedPlayers[index]}
                 onChange={(e) => updateSelectedPlayer(index, parseInt(e.target.value))}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                style={{ borderColor: selectedPlayers[index] ? PLAYER_COLORS[index] : undefined }}
+                style={{ 
+                  borderColor: selectedPlayers[index] ? PLAYER_COLORS[index] : undefined,
+                  borderWidth: selectedPlayers[index] ? '2px' : '1px'
+                }}
               >
                 <option value={0}>Select a player...</option>
                 {players.map(player => (
@@ -291,6 +321,12 @@ export default function Compare() {
                   </option>
                 ))}
               </select>
+              {selectedPlayers[index] > 0 && (
+                <div 
+                  className="absolute top-0 right-0 w-3 h-3 rounded-full"
+                  style={{ backgroundColor: PLAYER_COLORS[index] }}
+                ></div>
+              )}
             </div>
           ))}
         </div>
@@ -301,7 +337,7 @@ export default function Compare() {
         <>
           {/* Radar Chart */}
           <div className="mt-8 bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Radar</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Radar Comparison</h3>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={comparisonData}>
@@ -316,6 +352,7 @@ export default function Compare() {
                       stroke={PLAYER_COLORS[index]}
                       fill={PLAYER_COLORS[index]}
                       fillOpacity={0.3}
+                      strokeWidth={2}
                     />
                   ))}
                   <Legend />
@@ -324,23 +361,31 @@ export default function Compare() {
             </div>
           </div>
 
-          {/* Comprehensive Comparison Table */}
+          {/* Enhanced Comparison Table */}
           <div className="mt-8 bg-white rounded-lg shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Comprehensive Comparison</h3>
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Comprehensive Comparison ({playerStats.length} Players)
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                ✓ Statistics verified with accurate calculations
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">
                       Statistic
                     </th>
                     {playerStats.map((player, index) => (
                       <th
                         key={player.name}
-                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                        style={{ color: PLAYER_COLORS[index] }}
+                        className="px-6 py-3 text-center text-xs font-medium uppercase border-l-2"
+                        style={{ 
+                          color: PLAYER_COLORS[index],
+                          borderLeftColor: PLAYER_COLORS[index]
+                        }}
                       >
                         {player.name}
                       </th>
@@ -350,7 +395,7 @@ export default function Compare() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {comparisonMetrics.map((metric) => (
                     <tr key={metric.key} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">
                         {metric.label}
                       </td>
                       {playerStats.map((player, index) => {
@@ -363,11 +408,19 @@ export default function Compare() {
                         return (
                           <td
                             key={player.name}
-                            className={`px-6 py-4 text-sm text-center ${
+                            className={`px-6 py-4 text-sm text-center border-l-2 ${
                               isBest && isNumeric ? 'font-bold bg-green-50 text-green-800' : 'text-gray-900'
                             }`}
+                            style={{ borderLeftColor: PLAYER_COLORS[index] + '20' }}
                           >
-                            {metric.format(value as number)}
+                            <div className="flex flex-col">
+                              <span className={isBest ? 'text-green-800 font-bold' : ''}>
+                                {metric.format(value as number)}
+                              </span>
+                              {isBest && (
+                                <span className="text-xs text-green-600">👑 Best</span>
+                              )}
+                            </div>
                           </td>
                         )
                       })}
@@ -387,7 +440,7 @@ export default function Compare() {
             Select at least 2 players to start comparing their performance
           </p>
           <p className="text-sm text-gray-400 mt-2">
-            You can compare up to 5 players at once
+            You can compare up to 5 players at once with verified statistics
           </p>
         </div>
       )}

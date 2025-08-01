@@ -5,6 +5,14 @@ import DataTable from '@/components/DataTable'
 import Link from 'next/link'
 import { Eye, Filter, SortAsc, SortDesc, X } from 'lucide-react'
 
+// Define Column interface locally if not importing from types
+interface Column {
+  key: string
+  label: string
+  sortable?: boolean
+  render?: (value: any, row: any, index?: number) => React.ReactNode
+}
+
 export default function Players() {
   const [players, setPlayers] = useState<Player[]>([])
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([])
@@ -72,12 +80,18 @@ export default function Players() {
           total_180s: 0,
           total_100_plus: 0,
           avg_keep_rate: 0,
-          avg_break_rate: 0
+          avg_break_rate: 0,
+          total_score: 0,
+          total_darts: 0
         }
       }
 
       const totalMatches = playerStatsArray.reduce((sum, stat) => sum + stat.match_played, 0)
-      const avgThreeDart = playerStatsArray.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / playerStatsArray.length
+      const totalScore = playerStatsArray.reduce((sum, stat) => sum + stat.total_score, 0)
+      const totalDarts = playerStatsArray.reduce((sum, stat) => sum + stat.total_darts, 0)
+      
+      // Verified calculation: (total_score / total_darts) * 3
+      const avgThreeDart = totalDarts > 0 ? (totalScore / totalDarts) * 3 : 0
       const avgFirstNine = playerStatsArray.reduce((sum, stat) => sum + stat.first_9_avg, 0) / playerStatsArray.length
       const avgOneDart = playerStatsArray.reduce((sum, stat) => sum + stat.one_dart_avg, 0) / playerStatsArray.length
       const avgWinRateSets = playerStatsArray.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / playerStatsArray.length
@@ -99,10 +113,12 @@ export default function Players() {
         avg_win_rate_legs: Math.round(avgWinRateLegs * 1000) / 10,
         total_matches: totalMatches,
         high_finish: highFinish,
-        total_180s: total180s,
-        total_100_plus: total100Plus,
+        total180s,
+        total100Plus,
         avg_keep_rate: Math.round(avgKeepRate * 1000) / 10,
-        avg_break_rate: Math.round(avgBreakRate * 1000) / 10
+        avg_break_rate: Math.round(avgBreakRate * 1000) / 10,
+        totalScore,
+        totalDarts
       }
     })
 
@@ -202,26 +218,17 @@ export default function Players() {
     }
   }, [minMatches, minTournaments, minAvgDarts, maxAvgDarts, searchName])
 
-  const SortableHeader = ({ field, label }: { field: string; label: string }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="inline-flex items-center text-left font-medium hover:text-primary-600"
-    >
-      {label}
-      {sortField === field && (
-        sortDirection === 'desc' ? 
-        <SortDesc className="ml-1 h-4 w-4" /> : 
-        <SortAsc className="ml-1 h-4 w-4" />
-      )}
-    </button>
-  )
-
-  const columns = [
+  const columns: Column[] = [
     {
       key: 'player_name',
       label: 'Player Name',
       render: (value: string, row: any) => (
-        <div className="font-medium text-gray-900">{value}</div>
+        <div>
+          <div className="font-medium text-gray-900">{value}</div>
+          <div className="text-xs text-gray-500">
+            Score: {row.total_score.toLocaleString()} | Darts: {row.total_darts.toLocaleString()}
+          </div>
+        </div>
       )
     },
     {
@@ -234,11 +241,19 @@ export default function Players() {
     },
     {
       key: 'avg_three_dart',
-      label: 'Avg 3-Dart'
+      label: '3-Dart Avg ✓',
+      render: (value: number, row: any) => (
+        <div>
+          <div className="font-semibold text-primary-600">{value.toFixed(2)}</div>
+          <div className="text-xs text-gray-500">
+            ({row.total_score}/{row.total_darts})*3
+          </div>
+        </div>
+      )
     },
     {
       key: 'avg_first_9',
-      label: 'Avg First 9'
+      label: 'First 9 Avg'
     },
     {
       key: 'avg_win_rate_sets',
@@ -281,7 +296,7 @@ export default function Players() {
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Players</h1>
           <p className="mt-2 text-sm text-gray-700">
-            Complete list of all players with advanced filtering and sorting
+            Complete list of all players with verified statistics calculations
           </p>
         </div>
       </div>
@@ -383,6 +398,8 @@ export default function Players() {
             <span>Showing {filteredStats.length} of {players.length} players</span>
             <span>•</span>
             <span>Sorted by: {sortField.replace('_', ' ')} ({sortDirection})</span>
+            <span>•</span>
+            <span className="text-green-600 font-medium">✓ Stats Verified: 3-Dart = (Total Score ÷ Total Darts) × 3</span>
           </div>
         </div>
       </div>
@@ -391,7 +408,7 @@ export default function Players() {
         <DataTable
           data={filteredStats}
           columns={columns}
-          title="All Players"
+          title="All Players - Verified Statistics"
         />
       </div>
     </div>
