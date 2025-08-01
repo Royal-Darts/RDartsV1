@@ -5,10 +5,17 @@
 @layer base {
   html {
     font-family: system-ui, sans-serif;
+    height: 100%;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900 h-full;
+    margin: 0;
+    padding: 0;
+  }
+
+  #__next {
+    height: 100%;
   }
 }
 
@@ -22,7 +29,7 @@
   }
   
   .card {
-    @apply bg-white shadow rounded-lg;
+    @apply bg-white shadow rounded-lg border;
   }
   
   .table-header {
@@ -32,6 +39,30 @@
   .table-cell {
     @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
   }
+
+  /* Remove extra margins and padding that cause white space */
+  .no-spacing {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure full height layout */
+  .full-height {
+    min-height: 100vh;
+  }
+
+  /* Container with proper max-width */
+  .container-fluid {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Remove default margins from common elements */
+h1, h2, h3, h4, h5, h6, p, div {
+  margin: 0;
 }
 
 /* Custom scrollbar */
@@ -50,4 +81,24 @@
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
+}
+
+/* Ensure no unwanted spacing */
+* {
+  box-sizing: border-box;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .mobile-padding {
+    @apply px-4 py-4;
+  }
+  
+  .mobile-text {
+    @apply text-sm;
+  }
+  
+  .overflow-scroll {
+    overflow-x: auto;
+  }
 }

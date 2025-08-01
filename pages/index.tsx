@@ -34,7 +34,6 @@ export default function Dashboard() {
         const totalMatches = allStats.reduce((sum, stat) => sum + stat.match_played, 0)
         const avgPerformance = allStats.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / allStats.length
 
-        // Trend data
         const trendData = tournaments.map(tournament => {
           const tournamentStats = allStats.filter(stat => stat.tournament_id === tournament.tournament_id)
           const avg = tournamentStats.length > 0 
@@ -66,21 +65,23 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Royal Darts Dashboard</h1>
-        <p className="mt-2 text-gray-600">Tournament performance analytics and insights</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Royal Darts Dashboard</h1>
+        <p className="text-gray-600">Tournament performance analytics and insights</p>
       </div>
 
-      {/* Stats */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Total Players"
@@ -105,14 +106,14 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Charts */}
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Trend</h3>
           <Chart data={data.trendData} type="line" height={300} />
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow border">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Top Performers</h3>
           <div className="space-y-3">
             {data.topPerformers.slice(0, 5).map((player: PlayerStat, index: number) => (
@@ -131,9 +132,10 @@ export default function Dashboard() {
       </div>
 
       {/* Leaderboard Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-white shadow rounded-lg border overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
           <h3 className="text-lg font-medium text-gray-900">Elite Leaderboard</h3>
+          <p className="text-sm text-blue-700 mt-1">Top performers by 3-dart average</p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -150,7 +152,9 @@ export default function Dashboard() {
               {data.topPerformers.map((player: PlayerStat, index: number) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                      index < 3 ? (index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600') : 'bg-blue-500'
+                    }`}>
                       {index + 1}
                     </div>
                   </td>

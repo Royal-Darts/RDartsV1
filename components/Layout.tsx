@@ -27,7 +27,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Mobile menu */}
       <div className={`lg:hidden fixed inset-0 z-50 ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -38,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
             </button>
           </div>
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-            <div className="flex-shrink-0 flex items-center px-4 mb-8">
+            <div className="flex-shrink-0 flex items-center px-4 mb-6">
               <Crown className="h-8 w-8 text-blue-600" />
               <span className="ml-2 text-xl font-bold text-gray-900">Royal Darts</span>
             </div>
@@ -66,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="hidden lg:flex lg:flex-shrink-0">
         <div className="flex flex-col w-64">
           <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r border-gray-200">
-            <div className="flex items-center flex-shrink-0 px-4 mb-8">
+            <div className="flex items-center flex-shrink-0 px-4 mb-6">
               <Crown className="h-8 w-8 text-blue-600" />
               <span className="ml-2 text-xl font-bold text-gray-900">Royal Darts</span>
             </div>
@@ -91,25 +91,32 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex flex-col flex-1">
-        {/* Top bar */}
-        <div className="sticky top-0 z-10 lg:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-50">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Top bar for mobile */}
+        <div className="sticky top-0 z-10 lg:hidden bg-white border-b border-gray-200">
+          <div className="flex items-center justify-between px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="h-10 w-10 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <div className="flex items-center">
+              <Crown className="h-6 w-6 text-blue-600" />
+              <span className="ml-2 text-lg font-bold text-gray-900">Royal Darts</span>
+            </div>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
         </div>
 
-        {/* Page content */}
-        <main className="flex-1">
+        {/* Page content - No extra padding/margins */}
+        <main className="flex-1 bg-gray-50">
           {children}
         </main>
 
         {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 px-4 py-6">
+        <footer className="bg-white border-t border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">Royal Darts Analytics Platform</p>
             <p className="text-sm text-gray-500">
