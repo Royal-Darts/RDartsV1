@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
-import DataTable from '@/components/DataTable'
 import Link from 'next/link'
-import { Eye, Users, Search, Filter, Award, TrendingUp } from 'lucide-react'
+import { Eye, Users, Search, Filter } from 'lucide-react'
 
 export default function Players() {
   const [players, setPlayers] = useState<Player[]>([])
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([])
   const [filteredPlayers, setFilteredPlayers] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [minMatches, setMinMatches] = useState(0)
   const [sortBy, setSortBy] = useState('avg_three_dart')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(true)
@@ -35,9 +35,15 @@ export default function Players() {
   }, [])
 
   useEffect(() => {
+    // Exclude players from Ladderboard and Ladies Singles teams from stats calculation
+    const excludedTeams = ['Ladderboard', 'Ladies Singles']
+    const filteredStats = playerStats.filter(stat => 
+      !excludedTeams.includes(stat.teams?.team_name || '')
+    )
+
     // Aggregate player statistics
     let aggregatedStats = players.map(player => {
-      const playerStatsArray = playerStats.filter(stat => stat.player_id === player.player_id)
+      const playerStatsArray = filteredStats.filter(stat => stat.player_id === player.player_id)
       
       if (playerStatsArray.length === 0) {
         return {
@@ -73,6 +79,9 @@ export default function Players() {
       }
     })
 
+    // Apply minimum matches filter
+    aggregatedStats = aggregatedStats.filter(player => player.total_matches >= minMatches)
+
     // Apply search filter
     if (searchTerm) {
       aggregatedStats = aggregatedStats.filter(player =>
@@ -92,24 +101,24 @@ export default function Players() {
     })
 
     setFilteredPlayers(aggregatedStats)
-  }, [players, playerStats, searchTerm, sortBy, sortOrder])
+  }, [players, playerStats, searchTerm, sortBy, sortOrder, minMatches])
 
   const columns = [
     {
       key: 'rank',
       label: '#',
-      render: (value: any, row: any, index: number) => (
+      render: (_value: any, _row: any, index?: number) => (
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-          index < 3 ? (index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600') : 'bg-blue-500'
+          (index ?? 0) < 3 ? ((index ?? 0) === 0 ? 'bg-yellow-500' : (index ?? 0) === 1 ? 'bg-gray-400' : 'bg-amber-600') : 'bg-blue-500'
         }`}>
-          {index + 1}
+          {(index ?? 0) + 1}
         </div>
       )
     },
     {
       key: 'player_name',
       label: 'Player Name',
-      render: (value: string, row: any) => (
+      render: (value: string) => (
         <div className="font-medium text-gray-900 flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-3">
             {value.charAt(0).toUpperCase()}
@@ -184,7 +193,7 @@ export default function Players() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (value: any, row: any) => (
+      render: (_value: any, row: any) => (
         <Link
           href={`/players/${row.player_id}`}
           className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
@@ -215,16 +224,17 @@ export default function Players() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Player Rankings & Statistics
+            Royal Darts Players
           </h1>
           <p className="text-xl text-gray-600">
             Complete performance analysis of all {players.length} players
           </p>
+          <p className="text-sm text-gray-500 mt-2">Built & Managed by SUCA ANALYTICS</p>
         </div>
 
-        {/* Controls */}
+        {/* Enhanced Controls */}
         <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -234,6 +244,19 @@ export default function Players() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Minimum Matches Filter */}
+            <div className="relative">
+              <Filter className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type="number"
+                placeholder="Min matches"
+                value={minMatches || ''}
+                onChange={(e) => setMinMatches(Number(e.target.value) || 0)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min="0"
               />
             </div>
 
@@ -269,6 +292,32 @@ export default function Players() {
             </div>
           </div>
 
+          {/* Active Filters Display */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {minMatches > 0 && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Min {minMatches} matches
+                <button
+                  onClick={() => setMinMatches(0)}
+                  className="ml-1 text-blue-600 hover:text-blue-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {searchTerm && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Search: "{searchTerm}"
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="ml-1 text-green-600 hover:text-green-800"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </div>
+
           {/* Stats Summary */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
@@ -283,13 +332,15 @@ export default function Players() {
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {Math.round(filteredPlayers.reduce((sum, p) => sum + p.avg_three_dart, 0) / filteredPlayers.length * 100) / 100}
+                {filteredPlayers.length > 0 ? 
+                  Math.round(filteredPlayers.reduce((sum, p) => sum + p.avg_three_dart, 0) / filteredPlayers.length * 100) / 100 
+                  : 0}
               </div>
               <div className="text-sm text-purple-600">Avg 3-Dart</div>
             </div>
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">
-                {Math.max(...filteredPlayers.map(p => p.high_finish))}
+                {filteredPlayers.length > 0 ? Math.max(...filteredPlayers.map(p => p.high_finish)) : 0}
               </div>
               <div className="text-sm text-yellow-600">Best Finish</div>
             </div>
@@ -300,11 +351,12 @@ export default function Players() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
             <h3 className="text-xl font-semibold text-white flex items-center">
-              <Award className="h-6 w-6 mr-2" />
+              <Users className="h-6 w-6 mr-2" />
               Player Rankings & Statistics
             </h3>
             <p className="text-blue-100 mt-1">
               {filteredPlayers.length} players • Sorted by {sortBy.replace('_', ' ')} ({sortOrder === 'desc' ? 'highest first' : 'lowest first'})
+              {minMatches > 0 && ` • Min ${minMatches} matches`}
             </p>
           </div>
           

@@ -70,15 +70,17 @@ export default function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <div className="flex items-center flex-shrink-0 px-4 mb-8">
               <div className="flex items-center">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                  <Target className="h-8 w-8 text-white" />
-                </div>
+                <img 
+                  src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
+                  alt="Royal Darts Logo" 
+                  className="h-10 w-10 rounded-full shadow-md"
+                />
                 {!sidebarCollapsed && (
                   <div className="ml-3">
                     <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Darts Analytics
+                      Royal Darts
                     </span>
-                    <div className="text-xs text-gray-500">Elite Performance Tracker</div>
+                    <div className="text-xs text-gray-500">Elite Analytics Platform</div>
                   </div>
                 )}
               </div>
@@ -129,13 +131,13 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">DA</span>
+                    <span className="text-sm font-bold text-white">RD</span>
                   </div>
                 </div>
                 {!sidebarCollapsed && (
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">Darts Admin</p>
-                    <p className="text-xs text-gray-500">System Administrator</p>
+                    <p className="text-sm font-medium text-gray-700">Royal Darts</p>
+                    <p className="text-xs text-gray-500">SUCA Analytics</p>
                   </div>
                 )}
               </div>
@@ -161,11 +163,13 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </button>
             <div className="ml-4 flex items-center">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                <Target className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
+                alt="Royal Darts Logo" 
+                className="h-8 w-8 rounded-full shadow-md"
+              />
               <span className="ml-2 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Darts Analytics
+                Royal Darts
               </span>
             </div>
           </div>
@@ -175,12 +179,7 @@ export default function Layout({ children }: LayoutProps) {
             <button className="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors">
               <Search className="h-5 w-5" />
             </button>
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 relative transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
-                <span className="text-xs text-white font-medium">3</span>
-              </span>
-            </button>
+            <div className="text-xs text-gray-500">SUCA Analytics</div>
           </div>
         </div>
 
@@ -203,14 +202,16 @@ export default function Layout({ children }: LayoutProps) {
 
               <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
                 <div className="flex-shrink-0 flex items-center px-4 mb-8">
-                  <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                    <Target className="h-6 w-6 text-white" />
-                  </div>
+                  <img 
+                    src="https://i.postimg.cc/vZ6By1rw/temp-Image-ZZJWG4.avif" 
+                    alt="Royal Darts Logo" 
+                    className="h-8 w-8 rounded-full shadow-md"
+                  />
                   <div className="ml-3">
                     <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Darts Analytics
+                      Royal Darts
                     </span>
-                    <div className="text-xs text-gray-500">Elite Performance Tracker</div>
+                    <div className="text-xs text-gray-500">Elite Analytics Platform</div>
                   </div>
                 </div>
 
@@ -249,12 +250,12 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="flex items-center w-full">
                   <div className="flex-shrink-0">
                     <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">DA</span>
+                      <span className="text-sm font-bold text-white">RD</span>
                     </div>
                   </div>
                   <div className="ml-3 flex-1">
-                    <p className="text-base font-medium text-gray-700">Darts Admin</p>
-                    <p className="text-sm text-gray-500">System Administrator</p>
+                    <p className="text-base font-medium text-gray-700">Royal Darts</p>
+                    <p className="text-sm text-gray-500">Built & Managed by SUCA Analytics</p>
                   </div>
                 </div>
               </div>
