@@ -9,14 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.17",
+    "@headlessui/react": "^1.7.19",
     "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.0.0",
+    "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.294.0",
     "next": "^14.2.31",
+    "papaparse": "^5.5.3",
     "react": "^18",
     "react-dom": "^18",
-    "recharts": "^2.8.0"
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@types/node": "^20",
