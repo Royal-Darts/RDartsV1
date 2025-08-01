@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getTeams, getPlayerStats } from '@/lib/queries'
 import { Team, PlayerStat } from '@/lib/supabase'
 import DataTable from '@/components/DataTable'
-import { Filter, SortAsc, SortDesc, X } from 'lucide-react'
+import { Filter, X } from 'lucide-react'
 
 // Define Column interface locally if not importing from types
 interface Column {
@@ -61,22 +61,18 @@ export default function Teams() {
               avg_win_rate_legs: 0,
               total_matches: 0,
               tournaments: 0,
-              total_180s: 0,
-              total_100_plus: 0,
-              high_finish: 0
+              total_100_plus: 0
             }
           }
 
           const uniquePlayers = new Set(teamStatsArray.map(stat => stat.player_id))
           const uniqueTournaments = new Set(teamStatsArray.map(stat => stat.tournament_id))
-          const totalMatches = teamStatsArray.reduce((sum, stat) => sum + stat.match_played, 0)
-          const avgThreeDart = teamStatsArray.reduce((sum, stat) => sum + stat.three_dart_avg, 0) / teamStatsArray.length
-          const avgFirstNine = teamStatsArray.reduce((sum, stat) => sum + stat.first_9_avg, 0) / teamStatsArray.length
-          const avgWinRate = teamStatsArray.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / teamStatsArray.length
-          const avgWinRateLegs = teamStatsArray.reduce((sum, stat) => sum + stat.win_rate_legs, 0) / teamStatsArray.length
-          const total180s = teamStatsArray.reduce((sum, stat) => sum + stat.scores_180, 0)
-          const total100Plus = teamStatsArray.reduce((sum, stat) => sum + stat.scores_100_plus, 0)
-          const highFinish = Math.max(...teamStatsArray.map(stat => stat.high_finish))
+          const totalMatches = teamStatsArray.reduce((sum, stat) => sum + (stat.match_played || 0), 0)
+          const avgThreeDart = teamStatsArray.reduce((sum, stat) => sum + (stat.three_dart_avg || 0), 0) / teamStatsArray.length
+          const avgFirstNine = teamStatsArray.reduce((sum, stat) => sum + (stat.first_9_avg || 0), 0) / teamStatsArray.length
+          const avgWinRate = teamStatsArray.reduce((sum, stat) => sum + (stat.win_rate_sets || 0), 0) / teamStatsArray.length
+          const avgWinRateLegs = teamStatsArray.reduce((sum, stat) => sum + (stat.win_rate_legs || 0), 0) / teamStatsArray.length
+          const total100Plus = teamStatsArray.reduce((sum, stat) => sum + (stat.scores_100_plus || 0), 0)
 
           return {
             team_id: team.team_id,
@@ -88,9 +84,7 @@ export default function Teams() {
             avg_win_rate_legs: Math.round(avgWinRateLegs * 1000) / 10,
             total_matches: totalMatches,
             tournaments: uniqueTournaments.size,
-            total180s,
-            total100Plus,
-            highFinish
+            total100Plus
           }
         })
 
@@ -168,21 +162,6 @@ export default function Teams() {
     })
   }
 
-  const handleSort = (field: string) => {
-    const newDirection = sortField === field && sortDirection === 'desc' ? 'asc' : 'desc'
-    setSortField(field)
-    setSortDirection(newDirection)
-    
-    applyFiltersAndSort(teamStats, {
-      minPlayers,
-      minTournaments,
-      minMatches,
-      searchTeam,
-      sortField: field,
-      sortDirection: newDirection
-    })
-  }
-
   const clearFilters = () => {
     setMinPlayers(0)
     setMinTournaments(0)
@@ -239,12 +218,13 @@ export default function Teams() {
       label: 'Avg 3-Dart'
     },
     {
-      key: 'total_180s',
-      label: '180s'
-    },
-    {
-      key: 'high_finish',
-      label: 'High Finish'
+      key: 'total_100_plus',
+      label: '100+ Scores',
+      render: (value: number) => (
+        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+          {value}
+        </span>
+      )
     }
   ]
 

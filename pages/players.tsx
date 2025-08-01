@@ -3,7 +3,7 @@ import { getPlayers, getPlayerStats } from '@/lib/queries'
 import { Player, PlayerStat } from '@/lib/supabase'
 import DataTable from '@/components/DataTable'
 import Link from 'next/link'
-import { Eye, Filter, SortAsc, SortDesc, X } from 'lucide-react'
+import { Eye, Filter, X } from 'lucide-react'
 
 // Define Column interface locally if not importing from types
 interface Column {
@@ -18,6 +18,7 @@ export default function Players() {
   const [playerStats, setPlayerStats] = useState<PlayerStat[]>([])
   const [filteredStats, setFilteredStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   // Filter states
   const [minMatches, setMinMatches] = useState<number>(0)
@@ -33,15 +34,31 @@ export default function Players() {
   useEffect(() => {
     async function fetchData() {
       try {
+        setError(null)
+        console.log('Fetching players and stats...')
+        
         const [playersData, statsData] = await Promise.all([
           getPlayers(),
           getPlayerStats()
         ])
 
+        console.log('Players data:', playersData?.length || 0)
+        console.log('Stats data:', statsData?.length || 0)
+
+        if (!playersData || playersData.length === 0) {
+          setError('No players found in database')
+          return
+        }
+
+        if (!statsData || statsData.length === 0) {
+          setError('No player statistics found in database')
+          return
+        }
+
         setPlayers(playersData)
         setPlayerStats(statsData)
         
-        // Initial aggregation without filter
+        // Initial aggregation
         aggregatePlayerStats(playersData, statsData, {
           minMatches: 0,
           minTournaments: 0,
@@ -53,6 +70,7 @@ export default function Players() {
         })
       } catch (error) {
         console.error('Error fetching players:', error)
+        setError('Failed to load player data. Please check your database connection.')
       } finally {
         setLoading(false)
       }
@@ -62,134 +80,130 @@ export default function Players() {
   }, [])
 
   const aggregatePlayerStats = (playersData: Player[], statsData: PlayerStat[], filters: any) => {
-    const aggregatedStats = playersData.map(player => {
-      const playerStatsArray = statsData.filter(stat => stat.player_id === player.player_id)
+    try {
+      console.log('Aggregating stats for', playersData.length, 'players')
       
-      if (playerStatsArray.length === 0) {
+      const aggregatedStats = playersData.map(player => {
+        const playerStatsArray = statsData.filter(stat => stat.player_id === player.player_id)
+        
+        if (playerStatsArray.length === 0) {
+          return {
+            player_id: player.player_id,
+            player_name: player.player_name,
+            tournaments: 0,
+            avg_three_dart: 0,
+            avg_first_9: 0,
+            avg_one_dart: 0,
+            avg_win_rate_sets: 0,
+            avg_win_rate_legs: 0,
+            total_matches: 0,
+            high_finish: 0,
+            total_180s: 0,
+            total_100_plus: 0,
+            avg_keep_rate: 0,
+            avg_break_rate: 0,
+            total_score: 0,
+            total_darts: 0
+          }
+        }
+
+        const totalMatches = playerStatsArray.reduce((sum, stat) => sum + (stat.match_played || 0), 0)
+        const totalScore = playerStatsArray.reduce((sum, stat) => sum + (stat.total_score || 0), 0)
+        const totalDarts = playerStatsArray.reduce((sum, stat) => sum + (stat.total_darts || 0), 0)
+        
+        // Verified calculation: (total_score / total_darts) * 3
+        const avgThreeDart = totalDarts > 0 ? (totalScore / totalDarts) * 3 : 0
+        const avgFirstNine = playerStatsArray.reduce((sum, stat) => sum + (stat.first_9_avg || 0), 0) / playerStatsArray.length
+        const avgOneDart = playerStatsArray.reduce((sum, stat) => sum + (stat.one_dart_avg || 0), 0) / playerStatsArray.length
+        const avgWinRateSets = playerStatsArray.reduce((sum, stat) => sum + (stat.win_rate_sets || 0), 0) / playerStatsArray.length
+        const avgWinRateLegs = playerStatsArray.reduce((sum, stat) => sum + (stat.win_rate_legs || 0), 0) / playerStatsArray.length
+        const avgKeepRate = playerStatsArray.reduce((sum, stat) => sum + (stat.keep_rate || 0), 0) / playerStatsArray.length
+        const avgBreakRate = playerStatsArray.reduce((sum, stat) => sum + (stat.break_rate || 0), 0) / playerStatsArray.length
+        const highFinish = Math.max(...playerStatsArray.map(stat => stat.high_finish || 0))
+        const total180s = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_180 || 0), 0)
+        const total100Plus = playerStatsArray.reduce((sum, stat) => sum + (stat.scores_100_plus || 0), 0)
+
         return {
           player_id: player.player_id,
           player_name: player.player_name,
-          tournaments: 0,
-          avg_three_dart: 0,
-          avg_first_9: 0,
-          avg_one_dart: 0,
-          avg_win_rate_sets: 0,
-          avg_win_rate_legs: 0,
-          total_matches: 0,
-          high_finish: 0,
-          total_180s: 0,
-          total_100_plus: 0,
-          avg_keep_rate: 0,
-          avg_break_rate: 0,
-          total_score: 0,
-          total_darts: 0
+          tournaments: playerStatsArray.length,
+          avg_three_dart: Math.round(avgThreeDart * 100) / 100,
+          avg_first_9: Math.round(avgFirstNine * 100) / 100,
+          avg_one_dart: Math.round(avgOneDart * 100) / 100,
+          avg_win_rate_sets: Math.round(avgWinRateSets * 1000) / 10,
+          avg_win_rate_legs: Math.round(avgWinRateLegs * 1000) / 10,
+          total_matches: totalMatches,
+          high_finish: highFinish === -Infinity ? 0 : highFinish,
+          total180s,
+          total100Plus,
+          avg_keep_rate: Math.round(avgKeepRate * 1000) / 10,
+          avg_break_rate: Math.round(avgBreakRate * 1000) / 10,
+          totalScore,
+          totalDarts
         }
-      }
+      })
 
-      const totalMatches = playerStatsArray.reduce((sum, stat) => sum + stat.match_played, 0)
-      const totalScore = playerStatsArray.reduce((sum, stat) => sum + stat.total_score, 0)
-      const totalDarts = playerStatsArray.reduce((sum, stat) => sum + stat.total_darts, 0)
-      
-      // Verified calculation: (total_score / total_darts) * 3
-      const avgThreeDart = totalDarts > 0 ? (totalScore / totalDarts) * 3 : 0
-      const avgFirstNine = playerStatsArray.reduce((sum, stat) => sum + stat.first_9_avg, 0) / playerStatsArray.length
-      const avgOneDart = playerStatsArray.reduce((sum, stat) => sum + stat.one_dart_avg, 0) / playerStatsArray.length
-      const avgWinRateSets = playerStatsArray.reduce((sum, stat) => sum + stat.win_rate_sets, 0) / playerStatsArray.length
-      const avgWinRateLegs = playerStatsArray.reduce((sum, stat) => sum + stat.win_rate_legs, 0) / playerStatsArray.length
-      const avgKeepRate = playerStatsArray.reduce((sum, stat) => sum + stat.keep_rate, 0) / playerStatsArray.length
-      const avgBreakRate = playerStatsArray.reduce((sum, stat) => sum + stat.break_rate, 0) / playerStatsArray.length
-      const highFinish = Math.max(...playerStatsArray.map(stat => stat.high_finish))
-      const total180s = playerStatsArray.reduce((sum, stat) => sum + stat.scores_180, 0)
-      const total100Plus = playerStatsArray.reduce((sum, stat) => sum + stat.scores_100_plus, 0)
+      console.log('Aggregated', aggregatedStats.length, 'player records')
 
-      return {
-        player_id: player.player_id,
-        player_name: player.player_name,
-        tournaments: playerStatsArray.length,
-        avg_three_dart: Math.round(avgThreeDart * 100) / 100,
-        avg_first_9: Math.round(avgFirstNine * 100) / 100,
-        avg_one_dart: Math.round(avgOneDart * 100) / 100,
-        avg_win_rate_sets: Math.round(avgWinRateSets * 1000) / 10,
-        avg_win_rate_legs: Math.round(avgWinRateLegs * 1000) / 10,
-        total_matches: totalMatches,
-        high_finish: highFinish,
-        total180s,
-        total100Plus,
-        avg_keep_rate: Math.round(avgKeepRate * 1000) / 10,
-        avg_break_rate: Math.round(avgBreakRate * 1000) / 10,
-        totalScore,
-        totalDarts
-      }
-    })
+      // Apply filters
+      let filtered = aggregatedStats.filter(player => {
+        return (
+          player.total_matches >= filters.minMatches &&
+          player.tournaments >= filters.minTournaments &&
+          player.avg_three_dart >= filters.minAvgDarts &&
+          player.avg_three_dart <= filters.maxAvgDarts &&
+          player.player_name.toLowerCase().includes(filters.searchName.toLowerCase())
+        )
+      })
 
-    // Apply filters
-    let filtered = aggregatedStats.filter(player => {
-      return (
-        player.total_matches >= filters.minMatches &&
-        player.tournaments >= filters.minTournaments &&
-        player.avg_three_dart >= filters.minAvgDarts &&
-        player.avg_three_dart <= filters.maxAvgDarts &&
-        player.player_name.toLowerCase().includes(filters.searchName.toLowerCase())
-      )
-    })
-
-    // Apply sorting with proper type checking
-    filtered.sort((a, b) => {
-      const aVal = a[filters.sortField as keyof typeof a]
-      const bVal = b[filters.sortField as keyof typeof b]
-      
-      // Handle undefined values
-      if (aVal === undefined && bVal === undefined) return 0
-      if (aVal === undefined) return 1
-      if (bVal === undefined) return -1
-      
-      // Handle null values
-      if (aVal === null && bVal === null) return 0
-      if (aVal === null) return 1
-      if (bVal === null) return -1
-      
-      if (filters.sortDirection === 'asc') {
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return aVal.localeCompare(bVal)
+      // Apply sorting with proper type checking
+      filtered.sort((a, b) => {
+        const aVal = a[filters.sortField as keyof typeof a]
+        const bVal = b[filters.sortField as keyof typeof b]
+        
+        // Handle undefined values
+        if (aVal === undefined && bVal === undefined) return 0
+        if (aVal === undefined) return 1
+        if (bVal === undefined) return -1
+        
+        // Handle null values
+        if (aVal === null && bVal === null) return 0
+        if (aVal === null) return 1
+        if (bVal === null) return -1
+        
+        if (filters.sortDirection === 'asc') {
+          if (typeof aVal === 'string' && typeof bVal === 'string') {
+            return aVal.localeCompare(bVal)
+          }
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+        } else {
+          if (typeof aVal === 'string' && typeof bVal === 'string') {
+            return bVal.localeCompare(aVal)
+          }
+          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
         }
-        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
-      } else {
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return bVal.localeCompare(aVal)
-        }
-        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
-      }
-    })
+      })
 
-    setFilteredStats(filtered)
+      console.log('Filtered to', filtered.length, 'players')
+      setFilteredStats(filtered)
+    } catch (error) {
+      console.error('Error in aggregatePlayerStats:', error)
+      setError('Error processing player statistics')
+    }
   }
 
   const handleFilterChange = () => {
-    aggregatePlayerStats(players, playerStats, {
-      minMatches,
-      minTournaments,
-      minAvgDarts,
-      maxAvgDarts,
-      searchName,
-      sortField,
-      sortDirection
-    })
-  }
-
-  const handleSort = (field: string) => {
-    const newDirection = sortField === field && sortDirection === 'desc' ? 'asc' : 'desc'
-    setSortField(field)
-    setSortDirection(newDirection)
-    
-    aggregatePlayerStats(players, playerStats, {
-      minMatches,
-      minTournaments,
-      minAvgDarts,
-      maxAvgDarts,
-      searchName,
-      sortField: field,
-      sortDirection: newDirection
-    })
+    if (players.length > 0 && playerStats.length > 0) {
+      aggregatePlayerStats(players, playerStats, {
+        minMatches,
+        minTournaments,
+        minAvgDarts,
+        maxAvgDarts,
+        searchName,
+        sortField,
+        sortDirection
+      })
+    }
   }
 
   const clearFilters = () => {
@@ -201,19 +215,21 @@ export default function Players() {
     setSortField('avg_three_dart')
     setSortDirection('desc')
     
-    aggregatePlayerStats(players, playerStats, {
-      minMatches: 0,
-      minTournaments: 0,
-      minAvgDarts: 0,
-      maxAvgDarts: 100,
-      searchName: '',
-      sortField: 'avg_three_dart',
-      sortDirection: 'desc'
-    })
+    if (players.length > 0 && playerStats.length > 0) {
+      aggregatePlayerStats(players, playerStats, {
+        minMatches: 0,
+        minTournaments: 0,
+        minAvgDarts: 0,
+        maxAvgDarts: 100,
+        searchName: '',
+        sortField: 'avg_three_dart',
+        sortDirection: 'desc'
+      })
+    }
   }
 
   useEffect(() => {
-    if (players.length > 0) {
+    if (players.length > 0 && playerStats.length > 0) {
       handleFilterChange()
     }
   }, [minMatches, minTournaments, minAvgDarts, maxAvgDarts, searchName])
@@ -286,6 +302,28 @@ export default function Players() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="text-center py-12">
+          <div className="mx-auto h-24 w-24 text-red-400">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-red-900 mt-4">Data Loading Error</h2>
+          <p className="text-red-600 mt-2">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
